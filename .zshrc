@@ -102,6 +102,11 @@ alias updategroup="${HOME}/src/GAM/groupadd.sh"
 alias membership="${HOME}/src/GAM/members_can_view.sh"
 alias assettags="${HOME}/src/Casper/update_computer_info.sh"
 
+############
+# Sourcing #
+############
+source ~/.fonts/*.sh
+
 #################
 # Env Variables #
 #################
