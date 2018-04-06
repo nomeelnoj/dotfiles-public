@@ -101,6 +101,9 @@ alias patent="${HOME}/src/GAM/patent.sh"
 alias updategroup="${HOME}/src/GAM/groupadd.sh"
 alias membership="${HOME}/src/GAM/members_can_view.sh"
 alias assettags="${HOME}/src/Casper/update_computer_info.sh"
+alias dc="cd $PROJECT_PATH && docker-compose"
+alias butler="cd $PROJECT_PATH && python butler.py"
+alias login-ecr='$(aws ecr get-login --region us-west-2 --no-include-email)'
 
 ############
 # Sourcing #
@@ -116,5 +119,6 @@ export DELETE_ES_INDICES="1"
 export DISABLE_LAUNCH_DARKLY="0"
 export DISABLE_PHANTOMJS_DOWNLOADS="1"
 export MIGRATE_ON_EDITOR_START=1
+
 # added by travis gem
 [ -f "${HOME}/.travis/travis.sh" ] && source "${HOME}/.travis/travis.sh"
