@@ -104,6 +104,7 @@ alias assettags="${HOME}/src/Casper/update_computer_info.sh"
 alias dc="cd $PROJECT_PATH && docker-compose"
 alias butler="cd $PROJECT_PATH && python butler.py"
 alias login-ecr='$(aws ecr get-login --region us-west-2 --no-include-email)'
+alias prod-rds="aws rds describe-db-snapshots --db-instance-identifier db-prod-01 --snapshot-type automated --query \"DBSnapshots[?SnapshotCreateTime>='`date +%Y-%m-%d`'].DBSnapshotIdentifier\""
 
 ############
 # Sourcing #
