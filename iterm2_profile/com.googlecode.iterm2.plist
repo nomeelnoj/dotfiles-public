@@ -353,7 +353,7 @@
 	<key>LoadPrefsFromCustomFolder</key>
 	<true/>
 	<key>NSFontPanelAttributes</key>
-	<string>1, 7</string>
+	<string>1, 0</string>
 	<key>NSNavLastRootDirectory</key>
 	<string>~/dotfiles/iterm2_profile</string>
 	<key>NSNavPanelExpandedSizeForOpenMode</key>
@@ -395,21 +395,21 @@
 		<integer>1</integer>
 	</dict>
 	<key>NSWindow Frame NSFontPanel</key>
-	<string>1114 217 445 660 0 0 1920 1200 </string>
+	<string>1189 259 646 435 0 0 2560 1418 </string>
 	<key>NSWindow Frame Preferences</key>
 	<string>164 132 606 456 0 0 1920 1178 </string>
 	<key>NSWindow Frame SUUpdateAlert</key>
 	<string>-1590 786 620 392 -2560 0 2560 1440 </string>
 	<key>NSWindow Frame SharedPreferences</key>
-	<string>-1940 595 796 473 -2560 0 2560 1440 </string>
+	<string>243 411 928 394 0 0 2560 1418 </string>
 	<key>NSWindow Frame UKCrashReporter</key>
 	<string>-2538 834 592 584 -2560 0 2560 1418 </string>
 	<key>NSWindow Frame iTerm Window 0</key>
-	<string>-2560 0 1680 1028 -2560 0 2560 1440 </string>
+	<string>1133 346 1210 827 0 0 2560 1440 </string>
 	<key>NSWindow Frame iTerm Window 1</key>
-	<string>260 4 1660 1067 0 0 1920 1178 </string>
+	<string>292 68 1210 827 0 0 2560 1440 </string>
 	<key>NSWindow Frame iTerm Window 2</key>
-	<string>43 71 1055 625 0 0 1920 1178 </string>
+	<string>726 325 962 687 0 0 1920 1178 </string>
 	<key>NSWindow Frame iTerm Window 3</key>
 	<string>710 254 1210 707 0 0 1920 1178 </string>
 	<key>NSWindow Frame iTerm Window 4</key>
@@ -1679,7 +1679,7 @@
 			<key>Non-ASCII Anti Aliased</key>
 			<true/>
 			<key>Normal Font</key>
-			<string>FuraMonoForPowerlineNerdFontC-Medium 18</string>
+			<string>FuraMonoNerdFontComplete-Regular 14</string>
 			<key>Option Key Sends</key>
 			<integer>0</integer>
 			<key>Prevent Opening in a Tab</key>
@@ -3190,7 +3190,7 @@
 		</dict>
 	</dict>
 	<key>PrefsCustomFolder</key>
-	<string>/Users/jleemon/dotfiles/iterm2_profile</string>
+	<string>/Users/jleemon/repo/personal/dotfiles/iterm2_profile</string>
 	<key>QuitWhenAllWindowsClosed</key>
 	<false/>
 	<key>SUEnableAutomaticChecks</key>
@@ -3202,7 +3202,7 @@
 	<key>SUHasLaunchedBefore</key>
 	<true/>
 	<key>SULastCheckTime</key>
-	<date>2018-02-22T20:25:11Z</date>
+	<date>2018-05-07T20:18:30Z</date>
 	<key>SUSendProfileInfo</key>
 	<false/>
 	<key>ShowNewOutputIndicator</key>
@@ -3228,7 +3228,7 @@
 	<key>findRegex_iTerm</key>
 	<false/>
 	<key>iTerm Version</key>
-	<string>3.1.5</string>
+	<string>3.1.6</string>
 	<key>kCPKSelectionViewPreferredModeKey</key>
 	<integer>0</integer>
 	<key>kCPKSelectionViewShowHSBTextFieldsKey</key>
