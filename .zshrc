@@ -115,21 +115,15 @@ alias docker-chrome="docker run -p 5900:5900 -e VNC_SERVER_PASSWORD=password --u
 #################
 # Env Variables #
 #################
-<<<<<<< HEAD
 export PS1="\W \$ "
-
 export DELETE_ES_INDICES="1"
 export DISABLE_LAUNCH_DARKLY="0"
 export DISABLE_PHANTOMJS_DOWNLOADS="1"
 export MIGRATE_ON_EDITOR_START=1
-
-# Aliases
-
-# Exports
 export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk1.8.0_171.jdk/Contents/Home
 export GROOVY_HOME=/usr/local/bin/groovy
+
 # added by travis gem
-<<<<<<< HEAD
 [ -f "${HOME}/.travis/travis.sh" ] && source "${HOME}/.travis/travis.sh"
 
 #THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
