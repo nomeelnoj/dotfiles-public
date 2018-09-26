@@ -9,8 +9,11 @@ Install Powerlevel9k:
 
 Install Powerline Nerd Fonts:
 `https://github.com/ryanoasis/nerd-fonts`
+`https://github.com/Homebrew/homebrew-cask-fonts`
 ```brew tap caskroom/fonts
-brew cask install font-hack-nerd-font```
+brew cask install font-hack-nerd-font
+brew tap homebrew/cask-fonts
+brew cask install font-firamono-nerd-font```
 
 Optional: Install powerline fonts:
 `https://powerline.readthedocs.io/en/latest/installation/linux.html#fonts-installation`
