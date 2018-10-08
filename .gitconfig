@@ -7,6 +7,8 @@
   st = status
 [color]
   ui = auto
+	push = true
+	advice = true
 [color "branch"]
   current = yellow bold
   local = green bold
