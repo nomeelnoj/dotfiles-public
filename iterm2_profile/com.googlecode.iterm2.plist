@@ -355,7 +355,7 @@
 	<key>NSFontPanelAttributes</key>
 	<string>1, 0</string>
 	<key>NSNavLastRootDirectory</key>
-	<string>~/dotfiles/iterm2_profile</string>
+	<string>~/repo/personal/dotfiles/iterm2_profile</string>
 	<key>NSNavPanelExpandedSizeForOpenMode</key>
 	<string>{712, 448}</string>
 	<key>NSQuotedKeystrokeBinding</key>
@@ -395,17 +395,17 @@
 		<integer>1</integer>
 	</dict>
 	<key>NSWindow Frame NSFontPanel</key>
-	<string>1189 259 646 435 0 0 2560 1418 </string>
+	<string>548 184 646 301 0 0 2560 1440 </string>
 	<key>NSWindow Frame Preferences</key>
 	<string>164 132 606 456 0 0 1920 1178 </string>
 	<key>NSWindow Frame SUUpdateAlert</key>
-	<string>-1590 786 620 392 -2560 0 2560 1440 </string>
+	<string>1130 921 620 392 0 0 2880 1620 </string>
 	<key>NSWindow Frame SharedPreferences</key>
-	<string>243 411 928 394 0 0 2560 1418 </string>
+	<string>708 940 928 394 0 0 2880 1620 </string>
 	<key>NSWindow Frame UKCrashReporter</key>
 	<string>-2538 834 592 584 -2560 0 2560 1418 </string>
 	<key>NSWindow Frame iTerm Window 0</key>
-	<string>1133 346 1210 827 0 0 2560 1440 </string>
+	<string>0 780 1682 1134 0 0 2880 1620 </string>
 	<key>NSWindow Frame iTerm Window 1</key>
 	<string>292 68 1210 827 0 0 2560 1440 </string>
 	<key>NSWindow Frame iTerm Window 2</key>
@@ -1098,13 +1098,13 @@
 				<key>Alpha Component</key>
 				<real>1</real>
 				<key>Blue Component</key>
-				<real>0.20678263902664185</real>
+				<real>0.29604186090060208</real>
 				<key>Color Space</key>
-				<string>Calibrated</string>
+				<string>sRGB</string>
 				<key>Green Component</key>
-				<real>0.72711449861526489</real>
+				<real>0.77532958984375</real>
 				<key>Red Component</key>
-				<real>0.12173980474472046</real>
+				<real>0.12167762499302626</real>
 			</dict>
 			<key>Ansi 11 Color</key>
 			<dict>
@@ -1168,13 +1168,13 @@
 				<key>Alpha Component</key>
 				<real>1</real>
 				<key>Blue Component</key>
-				<real>0.042399603873491287</real>
+				<real>0.53105322451165193</real>
 				<key>Color Space</key>
-				<string>Calibrated</string>
+				<string>sRGB</string>
 				<key>Green Component</key>
-				<real>0.48429352045059204</real>
+				<real>0.781524658203125</real>
 				<key>Red Component</key>
-				<real>0.1669926643371582</real>
+				<real>0.50595898739993572</real>
 			</dict>
 			<key>Ansi 3 Color</key>
 			<dict>
@@ -1693,7 +1693,7 @@
 			<key>Screen</key>
 			<integer>-1</integer>
 			<key>Scrollback Lines</key>
-			<integer>1000</integer>
+			<integer>0</integer>
 			<key>Scrollback With Status Bar</key>
 			<true/>
 			<key>Selected Text Color</key>
@@ -3064,6 +3064,10 @@
 			<string>/Users/jleemon</string>
 		</dict>
 	</array>
+	<key>NoSyncCommandHistoryHasEverBeenUsed</key>
+	<true/>
+	<key>NoSyncHaveRequestedFullDiskAccess</key>
+	<true/>
 	<key>NoSyncHaveWarnedAboutPasteConfirmationChange</key>
 	<true/>
 	<key>NoSyncInstallationId</key>
@@ -3190,7 +3194,7 @@
 		</dict>
 	</dict>
 	<key>PrefsCustomFolder</key>
-	<string>/Users/jleemon/repo/personal/dotfiles/iterm2_profile</string>
+	<string>/Users/jleemon/dotfiles/iterm2_profile</string>
 	<key>QuitWhenAllWindowsClosed</key>
 	<false/>
 	<key>SUEnableAutomaticChecks</key>
@@ -3202,7 +3206,7 @@
 	<key>SUHasLaunchedBefore</key>
 	<true/>
 	<key>SULastCheckTime</key>
-	<date>2018-05-07T20:18:30Z</date>
+	<date>2018-12-19T00:19:50Z</date>
 	<key>SUSendProfileInfo</key>
 	<false/>
 	<key>ShowNewOutputIndicator</key>
@@ -3228,7 +3232,7 @@
 	<key>findRegex_iTerm</key>
 	<false/>
 	<key>iTerm Version</key>
-	<string>3.1.6</string>
+	<string>3.2.5</string>
 	<key>kCPKSelectionViewPreferredModeKey</key>
 	<integer>0</integer>
 	<key>kCPKSelectionViewShowHSBTextFieldsKey</key>

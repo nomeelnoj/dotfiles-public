@@ -58,7 +58,7 @@ ZSH_THEME="powerlevel9k/powerlevel9k"
 # Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git, per-directory-history)
+plugins=(git per-directory-history)
 
 source $ZSH/oh-my-zsh.sh
 
@@ -133,6 +133,19 @@ export DISABLE_PHANTOMJS_DOWNLOADS="1"
 export MIGRATE_ON_EDITOR_START=1
 export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk1.8.0_171.jdk/Contents/Home
 export GROOVY_HOME=/usr/local/bin/groovy
+
+#############
+# Functions #
+#############
+function openpref() {
+    if [ -z "$1" ]
+    then
+        echo "FATAL: Enter a preference pane"
+        return 1
+    else
+        open -b com.apple.systempreferences /System/Library/PreferencePanes/$1.prefPane
+    fi
+}
 
 # added by travis gem
 [ -f "${HOME}/.travis/travis.sh" ] && source "${HOME}/.travis/travis.sh"
