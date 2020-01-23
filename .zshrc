@@ -1,6 +1,6 @@
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
-
+#
 # Path to your oh-my-zsh installation.
 export ZSH="${HOME}/.oh-my-zsh"
 
@@ -10,11 +10,15 @@ POWERLEVEL9K_PROMPT_ON_NEWLINE=true
 POWERLEVEL9K_MODE='nerdfont-complete'
 POWERLEVEL9K_SHORTEN_DIR_LENGTH=2
 POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(virtualenv)
+POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(virtualenv kubecontext)
+POWERLEVEL9K_VCS_GIT_BITBUCKET_ICON="\uE703"
+
+prompt_context(){}
 
 # Set name of the theme to load. Optionally, if you set this to "random"
 # it'll load a random theme each time that oh-my-zsh is loaded.
 # See https://github.com/robbyrussell/oh-my-zsh/wiki/Themes
-ZSH_THEME="powerlevel9k/powerlevel9k"
+ZSH_THEME="powerlevel10k/powerlevel10k"
 
 # Uncomment the following line to use case-sensitive completion.
 # CASE_SENSITIVE="true"
@@ -117,6 +121,9 @@ alias butler="cd $PROJECT_PATH && python butler.py"
 alias login-ecr='$(aws ecr get-login --region us-west-2 --no-include-email)'
 alias prod-rds="aws rds describe-db-snapshots --db-instance-identifier db-prod-01 --snapshot-type automated --query \"DBSnapshots[?SnapshotCreateTime>='`date +%Y-%m-%d`'].DBSnapshotIdentifier\""
 alias docker-chrome="docker run -p 5900:5900 -e VNC_SERVER_PASSWORD=password --user apps --privileged local/chrome:0.0.1"
+alias kcn="kubectl config set-context --current --namespace"
+alias update_kustomize='/usr/local/bin/update_kustomize.sh'
+alias kustom="python3 kustom.py"
 
 ############
 # Sourcing #
@@ -147,6 +154,34 @@ function openpref() {
     fi
 }
 
+function secretseal() {
+    if [ -z "$1" ]
+    then
+        echo "FATAL: Enter a secret name"
+        return 1
+    fi
+    if [ -z "$2" ]
+    then
+        echo "FATAL: Enter a secret key name"
+        return 1
+    fi
+    if [ -z "$3" ]
+    then
+        echo "FATAL: Enter a file name to pull the secret from"
+        return 1
+    fi
+    if [ -z "${4}" ]
+    then
+        echo "FATAL: Enter an environment"
+        return 1
+    fi
+
+    kubectl --context=${4} create secret generic ${1} --dry-run --from-file=${2}=${3} -o json | kubeseal --cert sealed-secrets-${4}.crt --format yaml > ${1}.yaml
+}
+
+# Auto complete
+source <(stern --completion=zsh)
+
 # added by travis gem
 [ -f "${HOME}/.travis/travis.sh" ] && source "${HOME}/.travis/travis.sh"
 
@@ -155,3 +190,4 @@ export SDKMAN_DIR="${HOME}/.sdkman"
 [[ -s "${HOME}/.sdkman/bin/sdkman-init.sh" ]] && source "${HOME}/.sdkman/bin/sdkman-init.sh"
 
 export PATH="/usr/local/Cellar/yarn/1.9.4/bin:$PATH"
+
