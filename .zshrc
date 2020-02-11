@@ -121,6 +121,8 @@ alias butler="cd $PROJECT_PATH && python butler.py"
 alias login-ecr='$(aws ecr get-login --region us-west-2 --no-include-email)'
 alias prod-rds="aws rds describe-db-snapshots --db-instance-identifier db-prod-01 --snapshot-type automated --query \"DBSnapshots[?SnapshotCreateTime>='`date +%Y-%m-%d`'].DBSnapshotIdentifier\""
 alias docker-chrome="docker run -p 5900:5900 -e VNC_SERVER_PASSWORD=password --user apps --privileged local/chrome:0.0.1"
+alias kc="kubectl"
+alias kb="kustomize build"
 alias kcn="kubectl config set-context --current --namespace"
 alias update_kustomize='/usr/local/bin/update_kustomize.sh'
 alias kustom="python3 kustom.py"
