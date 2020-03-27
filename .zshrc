@@ -20,6 +20,11 @@ prompt_context(){}
 # See https://github.com/robbyrussell/oh-my-zsh/wiki/Themes
 ZSH_THEME="powerlevel10k/powerlevel10k"
 
+#ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=#606D6E'
+# __git_files () {
+#     _wanted files expl 'local files' _files
+# }
+
 # Uncomment the following line to use case-sensitive completion.
 # CASE_SENSITIVE="true"
 
@@ -28,7 +33,7 @@ ZSH_THEME="powerlevel10k/powerlevel10k"
 # HYPHEN_INSENSITIVE="true"
 
 # Uncomment the following line to disable bi-weekly auto-update checks.
-# DISABLE_AUTO_UPDATE="true"
+DISABLE_AUTO_UPDATE="true"
 
 # Uncomment the following line to change how often to auto-update (in days).
 # export UPDATE_ZSH_DAYS=13
@@ -48,7 +53,7 @@ ZSH_THEME="powerlevel10k/powerlevel10k"
 # Uncomment the following line if you want to disable marking untracked files
 # under VCS as dirty. This makes repository status check for large repositories
 # much, much faster.
-# DISABLE_UNTRACKED_FILES_DIRTY="true"
+DISABLE_UNTRACKED_FILES_DIRTY="true"
 
 # Uncomment the following line if you want to change the command execution time
 # stamp shown in the history command output.
@@ -142,6 +147,8 @@ export DISABLE_PHANTOMJS_DOWNLOADS="1"
 export MIGRATE_ON_EDITOR_START=1
 export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk1.8.0_171.jdk/Contents/Home
 export GROOVY_HOME=/usr/local/bin/groovy
+export GPG_TTY=$(tty)
+export GOBIN="/Users/jleemon/go/bin"
 
 #############
 # Functions #
@@ -180,6 +187,37 @@ function secretseal() {
 
     kubectl --context=${4} create secret generic ${1} --dry-run --from-file=${2}=${3} -o json | kubeseal --cert sealed-secrets-${4}.crt --format yaml > ${1}.yaml
 }
+
+okta_auth() {
+  DUO_DEVICE="phone1"
+  if [[ $(ioreg -p IOUSB -l -w 0 | grep '"USB Vendor Name" = "Yubico"') ]]; then
+    DUO_DEVICE='u2f'
+  fi
+  if [[ -z ${1+x} ]]; then PROFILES=${AWS_PROFILE}; else PROFILES=${1}; fi
+  for PROFILE in ${PROFILES//,/ }
+  do
+    validate_aws_credentials ${PROFILE}
+    if [[ $? -ne 0 ]]; then
+      aws-okta \
+        --debug \
+        --mfa-provider DUO \
+        --mfa-duo-device ${DUO_DEVICE} \
+        --mfa-factor-type web \
+        --assume-role-ttl 10h \
+        --session-ttl 10h \
+        write-to-credentials \
+        ${PROFILE} \
+        ~/.aws/credentials
+      EXPIRATION=$(
+        aws-okta \
+          cred-process \
+          ${PROFILE} | \
+        jq -r .Expiration)
+      echo "Expiration: ${EXPIRATION}"
+    fi
+  done
+}
+
 
 # Auto complete
 source <(stern --completion=zsh)

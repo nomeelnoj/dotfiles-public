@@ -10,6 +10,8 @@
 	<true/>
 	<key>AppleAntiAliasingThreshold</key>
 	<integer>1</integer>
+	<key>ApplePressAndHoldEnabled</key>
+	<false/>
 	<key>AppleScrollAnimationEnabled</key>
 	<integer>0</integer>
 	<key>AppleSmoothFixedFontsSizeThreshold</key>
@@ -406,15 +408,15 @@
 	<key>NSWindow Frame Preferences</key>
 	<string>164 132 606 456 0 0 1920 1178 </string>
 	<key>NSWindow Frame SUUpdateAlert</key>
-	<string>1130 921 620 392 0 0 2880 1620 </string>
+	<string>586 546 620 392 0 0 1792 1120 </string>
 	<key>NSWindow Frame SharedPreferences</key>
 	<string>708 940 928 394 0 0 2880 1620 </string>
 	<key>NSWindow Frame UKCrashReporter</key>
 	<string>26 1013 592 584 0 0 2880 1597 </string>
 	<key>NSWindow Frame iTerm Window 0</key>
-	<string>83 59 1210 827 0 0 1680 1050 </string>
+	<string>272 200 1210 827 0 0 2560 1440 </string>
 	<key>NSWindow Frame iTerm Window 1</key>
-	<string>109 123 1210 827 0 0 1680 1050 </string>
+	<string>3267 437 1210 827 2880 0 2880 1620 </string>
 	<key>NSWindow Frame iTerm Window 2</key>
 	<string>726 325 962 687 0 0 1920 1178 </string>
 	<key>NSWindow Frame iTerm Window 3</key>
@@ -1682,7 +1684,7 @@
 			<key>Name</key>
 			<string>Jon</string>
 			<key>Non Ascii Font</key>
-			<string>DroidSansMonoForPowerlineNerdFontC- 12</string>
+			<string>Menlo-Regular 11</string>
 			<key>Non-ASCII Anti Aliased</key>
 			<true/>
 			<key>Normal Font</key>
@@ -3768,12 +3770,14 @@
 	</array>
 	<key>NoSyncAllAppVersions</key>
 	<array>
-		<string>3.3.2</string>
-		<string>3.2.9</string>
-		<string>3.3.1</string>
-		<string>3.3.0</string>
-		<string>3.3.3</string>
 		<string>3.3.6</string>
+		<string>3.3.1</string>
+		<string>3.3.3</string>
+		<string>3.3.7</string>
+		<string>3.3.9</string>
+		<string>3.2.9</string>
+		<string>3.3.2</string>
+		<string>3.3.0</string>
 	</array>
 	<key>NoSyncBFPRecents</key>
 	<array>
@@ -3787,9 +3791,9 @@
 	<key>NoSyncFrame_SharedPreferences</key>
 	<dict>
 		<key>screenFrame</key>
-		<string>{{0, 0}, {2880, 1620}}</string>
+		<string>{{0, 0}, {1792, 1120}}</string>
 		<key>topLeft</key>
-		<string>{466, 920}</string>
+		<string>{269, 595}</string>
 	</dict>
 	<key>NoSyncHaveRequestedFullDiskAccess</key>
 	<true/>
@@ -3802,7 +3806,7 @@
 	<key>NoSyncLastTipTime</key>
 	<real>589395615.76388097</real>
 	<key>NoSyncLaunchExperienceControllerRunCount</key>
-	<integer>20</integer>
+	<integer>45</integer>
 	<key>NoSyncNeverRemindPrefsChangesLostForFile</key>
 	<true/>
 	<key>NoSyncNeverRemindPrefsChangesLostForFile_selection</key>
@@ -4155,6 +4159,14 @@
 				<key>isTerminal</key>
 				<true/>
 				<key>name</key>
+				<string>currentTab.currentSession.termid</string>
+				<key>nonterminalContext</key>
+				<integer>0</integer>
+			</dict>
+			<dict>
+				<key>isTerminal</key>
+				<true/>
+				<key>name</key>
 				<string>currentTab.currentSession.terminalIconName</string>
 				<key>nonterminalContext</key>
 				<integer>0</integer>
@@ -4290,6 +4302,14 @@
 		</array>
 		<key>2</key>
 		<array>
+			<dict>
+				<key>isTerminal</key>
+				<true/>
+				<key>name</key>
+				<string>currentSession.termid</string>
+				<key>nonterminalContext</key>
+				<integer>0</integer>
+			</dict>
 			<dict>
 				<key>isTerminal</key>
 				<true/>
@@ -4527,19 +4547,6 @@
 			</dict>
 		</array>
 	</dict>
-	<key>NoSyncSearchHistory2</key>
-	<array>
-		<string>salesforce</string>
-		<string>kafkaconnector</string>
-		<string>unsuppor</string>
-		<string>unsupported kind </string>
-		<string>unsupported kin </string>
-		<string>unsupported ki </string>
-		<string>unsupported k </string>
-		<string>unsupported  </string>
-		<string>unsupported K </string>
-		<string>unsupported Ki </string>
-	</array>
 	<key>NoSyncTimeOfFirstLaunchOfVersionWithTip</key>
 	<real>507523501.80874097</real>
 	<key>NoSyncTipsToNotShow</key>
@@ -4673,11 +4680,11 @@
 	<key>SUHasLaunchedBefore</key>
 	<true/>
 	<key>SULastCheckTime</key>
-	<date>2019-12-04T18:36:44Z</date>
+	<date>2020-03-02T03:33:20Z</date>
 	<key>SUSendProfileInfo</key>
 	<false/>
 	<key>SUUpdateRelaunchingMarker</key>
-	<true/>
+	<false/>
 	<key>ShowNewOutputIndicator</key>
 	<true/>
 	<key>ShowPaneTitles</key>
@@ -4705,7 +4712,7 @@
 	<key>findRegex_iTerm</key>
 	<false/>
 	<key>iTerm Version</key>
-	<string>3.3.6</string>
+	<string>3.3.9</string>
 	<key>kCPKSelectionViewPreferredModeKey</key>
 	<integer>0</integer>
 	<key>kCPKSelectionViewShowHSBTextFieldsKey</key>

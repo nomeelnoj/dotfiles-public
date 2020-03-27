@@ -1,6 +1,9 @@
 [user]
 	name = Jon Leemon
   username = nomeelnoj
+	email = nomeelnoj@users.noreply.github.com
+  username = nomeelnoj
+  signingkey = 6841E1414EEA439D
 [alias]
   lol = log --oneline --abbrev-commit
   ch = log --oneline --abbrev-commit -p -5
@@ -34,7 +37,10 @@
   trustExitCode = true
 [commit]
 	template = ${HOME}/.stCommitMsg
+	gpgsign = true
 [push]
   default = current
 [branch]
   autosetuprebase = always
+[gpg]
+	program = gpg
