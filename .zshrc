@@ -11,7 +11,8 @@ POWERLEVEL9K_MODE='nerdfont-complete'
 POWERLEVEL9K_SHORTEN_DIR_LENGTH=2
 POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(virtualenv)
 POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(virtualenv kubecontext)
-POWERLEVEL9K_VCS_GIT_BITBUCKET_ICON="\uE703"
+POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(context dir vcs)
+#POWERLEVEL9K_VCS_GIT_BITBUCKET_ICON="\uE703"
 
 prompt_context(){}
 
@@ -23,7 +24,7 @@ ZSH_THEME="powerlevel10k/powerlevel10k"
 #ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=#606D6E'
 # __git_files () {
 #     _wanted files expl 'local files' _files
-# }
+#}
 
 # Uncomment the following line to use case-sensitive completion.
 # CASE_SENSITIVE="true"
@@ -67,11 +68,13 @@ DISABLE_UNTRACKED_FILES_DIRTY="true"
 # Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git per-directory-history)
+plugins=(git per-directory-history fzf)
 
 source $ZSH/oh-my-zsh.sh
 
 # User configuration
+
+export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
 
 # export MANPATH="/usr/local/man:$MANPATH"
 
@@ -121,7 +124,6 @@ alias patent="${HOME}/src/GAM/patent.sh"
 alias updategroup="${HOME}/src/GAM/groupadd.sh"
 alias membership="${HOME}/src/GAM/members_can_view.sh"
 alias assettags="${HOME}/src/Casper/update_computer_info.sh"
-alias dc="cd $PROJECT_PATH && docker-compose"
 alias butler="cd $PROJECT_PATH && python butler.py"
 alias login-ecr='$(aws ecr get-login --region us-west-2 --no-include-email)'
 alias prod-rds="aws rds describe-db-snapshots --db-instance-identifier db-prod-01 --snapshot-type automated --query \"DBSnapshots[?SnapshotCreateTime>='`date +%Y-%m-%d`'].DBSnapshotIdentifier\""
@@ -131,11 +133,15 @@ alias kb="kustomize build"
 alias kcn="kubectl config set-context --current --namespace"
 alias update_kustomize='/usr/local/bin/update_kustomize.sh'
 alias kustom="python3 kustom.py"
-
-############
-# Sourcing #
-############
-#source ~/.fonts/*.sh
+alias dc=docker-compose
+alias gpush="git push -u"
+alias vault-groups="vault list /auth/ldap/groups | tail -n +3 | xargs -I{} sh -c 'printf \"{}\": ; vault read --format json /auth/ldap/groups/{} | jq .data.policies -r'"
+alias tf="terraform"
+alias tfp="terraform plan"
+alias tfi="terraform init --upgrade"
+alias tfa="terraform apply"
+alias gitcm="git checkout master"
+alias gmp="git checkout master && git pull"
 
 #################
 # Env Variables #
@@ -149,6 +155,8 @@ export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk1.8.0_171.jdk/Contents/Hom
 export GROOVY_HOME=/usr/local/bin/groovy
 export GPG_TTY=$(tty)
 export GOBIN="/Users/jleemon/go/bin"
+export TF_PLUGIN_CACHE_DIR=~/.terraform
+export ECR_IMAGE_REPO="${ECR_REGISTRY}.dkr.ecr.us-east-1.amazonaws.com"
 
 #############
 # Functions #
@@ -188,6 +196,42 @@ function secretseal() {
     kubectl --context=${4} create secret generic ${1} --dry-run --from-file=${2}=${3} -o json | kubeseal --cert sealed-secrets-${4}.crt --format yaml > ${1}.yaml
 }
 
+validate_aws_credentials() {
+  if [[ -z ${1+x} ]]; then PROFILES=${AWS_PROFILE}; else PROFILES=${1}; fi
+  echo "profiles list: $PROFILES"
+  for PROFILE in ${PROFILES//,/ }
+  do
+    AWS_PROFILE=${PROFILE}
+    echo "AWS Profile: ${AWS_PROFILE}"
+    PAGER="cat" aws2 sts get-caller-identity --profile $AWS_PROFILE
+  done
+}
+
+function get_secret() {
+  if [ -z "$1" ]; then
+    echo "Must provide a secret name!"
+    return 1
+  fi
+  if [ -z "$2" ]; then
+    COMMAND="kubectl get secret $1 -o json | jq '.data | with_entries(.value |= (. | @base64d))'"
+  else
+    COMMAND="kubectl --context $2 get secret $1 -o json | jq '.data | with_entries(.value |= (. | @base64d))'"
+  fi
+  eval $COMMAND
+}
+
+function move_certs() {
+  if [ -z "$1" ]; then
+    echo "Must provide a cert CN name!"
+    return 1
+  fi
+  if [ -z "$2" ]; then
+    echo "Must provide an env name!"
+  fi
+  COMMAND="ls $1* | sed -e 'p;s/${1}/${1}-${2}/' | xargs -n2 mv"
+  eval $COMMAND
+}
+
 okta_auth() {
   DUO_DEVICE="phone1"
   if [[ $(ioreg -p IOUSB -l -w 0 | grep '"USB Vendor Name" = "Yubico"') ]]; then
@@ -196,31 +240,217 @@ okta_auth() {
   if [[ -z ${1+x} ]]; then PROFILES=${AWS_PROFILE}; else PROFILES=${1}; fi
   for PROFILE in ${PROFILES//,/ }
   do
-    validate_aws_credentials ${PROFILE}
-    if [[ $? -ne 0 ]]; then
+    echo "profile is: ${PROFILE}"
+    aws-okta \
+      --debug \
+      --mfa-provider DUO \
+      --mfa-duo-device ${DUO_DEVICE} \
+      --mfa-factor-type web \
+      --assume-role-ttl 10h \
+      --session-ttl 10h \
+      write-to-credentials \
+      ${PROFILE} \
+      ~/.aws/credentials
+    EXPIRATION=$(
       aws-okta \
-        --debug \
-        --mfa-provider DUO \
-        --mfa-duo-device ${DUO_DEVICE} \
-        --mfa-factor-type web \
-        --assume-role-ttl 10h \
-        --session-ttl 10h \
-        write-to-credentials \
-        ${PROFILE} \
-        ~/.aws/credentials
-      EXPIRATION=$(
-        aws-okta \
-          cred-process \
-          ${PROFILE} | \
-        jq -r .Expiration)
-      echo "Expiration: ${EXPIRATION}"
-    fi
+        cred-process \
+        ${PROFILE} | \
+      jq -r .Expiration)
+    echo "Expiration: ${EXPIRATION}"
   done
 }
 
+# Auto complete
+source <(stern --completion=zsh)
+
+ldap_membership() {
+  ldapsearch \
+    -o ldif-wrap=no \
+    -H ldaps://${DOMAIN_CONTROLLER}:636 \
+    -D "${DOMAIN_DN}" \
+    -w "${DOMAIN_PASSWORD}" \
+    -b "${DOMAIN_ROOT}" "(&(cn=*)(sAMAccountName=$1))" 'memberOf' | \
+  grep 'memberOf' | \
+  awk '{print $2}'
+}
+
+function ldap_group() {
+  ldapsearch \
+    -o ldif-wrap=no \
+    -H ldaps://${DOMAIN_CONTROLLER}:636 \
+    -D "${DOMAIN_DN}" \
+    -w "${DOMAIN_PASSWORD}" \
+    -b "${DOMAIN_ROOT}" "(&(cn=$1))" 'member' | \
+  grep -v 'requesting:' | \
+  grep 'member' | \
+  cut -d " " -f2-
+}
+
+ldap_public_key() {
+  ldapsearch \
+    -o ldif-wrap=no \
+    -H ldaps://${DOMAIN_CONTROLLER}:636 \
+    -D "${DOMAIN_DN}" \
+    -w "${DOMAIN_PASSWORD}" \
+    -b "${DOMAIN_ROOT}" "(&(cn=*)(sAMAccountName=$1))" 'sshPublicKey' | \
+  grep -v 'requesting:' | \
+  grep 'sshPublicKey' | \
+  cut -d " " -f2-
+}
+
+function greb() {
+    REMOTE=${1:-master}
+    git fetch origin && git rebase origin/${REMOTE}
+}
+
+function tjira() {
+  if [ -z "$2" ]; then
+    QUERY="--query 'project IN (${1}) AND resolution = unresolved AND status != Closed ORDER BY created'"
+  elif [ "$2" = "all" ]; then
+    QUERY="--query 'project IN (${1}) ORDER BY created'"
+  fi
+}
+export JIRA_PROJECTS="DATA"
+function fjira() {
+  if [ -z "$2" ]; then
+    QUERY="project IN (${1}) AND resolution = unresolved AND status != Closed ORDER BY created"
+  elif [ "$2" = "all" ]; then
+    QUERY="project IN (${1}) ORDER BY created"
+  fi
+  local IFS=$'\n'
+  jira list \
+    --query "${QUERY}" \
+    --template list |\
+  fzf-tmux \
+    --query="$1" \
+    --multi \
+    --select-1 \
+    --preview  "echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c 'jira view %'" \
+    --bind 'enter:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira edit % < /dev/tty"
+      /,Ctrl-t:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira take %"
+      /,Ctrl-C:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira transition --resolution=Done Accepted % < /dev/tty"
+      /,Ctrl-c:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira transition --resolution=Done Done % < /dev/tty"
+      /,Ctrl-s:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira transition \"In Dev\" % --noedit"
+      /,Ctrl-S:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira transition \"In Progress\" % --noedit"
+      /' \
+    --exit-0
+}
+
+function tf_target() {
+    local IFS=$'\n'
+    local RETURN='terraform apply'
+    while read -r line;
+    do
+        RETURN+=$(
+          echo "${line}" | \
+          cut \
+            -d ' ' \
+            -f 4 | \
+          sed \
+            -e 's/^/ --target=/'
+        )
+      done < <(fzf --multi --exit-0 --tac --no-sort)
+    echo ${RETURN}
+}
+
+function tf_import() {
+    local IFS=$'\n'
+    local RETURN='terraform import'
+    while read -r line;
+    do
+        RETURN+=$(
+          echo "${line}" | \
+          cut \
+            -d ' ' \
+            -f 4 | \
+          sed \
+            -e 's/^/ /' \
+            -e 's/\[/\\\[/g' \
+            -e 's/\]/\\\]/g'
+        )
+      done < <(fzf --multi --exit-0 --tac --no-sort)
+    echo ${RETURN}
+}
+
+function tf_grep() {
+  grep \
+    -e '#' \
+    -e ' + ' \
+    -e ' - ' \
+    -e ' ~ ' \
+    -e '-/+'
+}
+
+function tf_list() {
+    local IFS=$'\n'
+    local RETURN='Items to be planned: \n'
+    while read -r line;
+    do
+        RETURN+=$(
+          echo "\n${line}" | \
+          cut \
+            -d ' ' \
+            -f 4 | \
+          sed \
+            -e 's/\"/\\\"/g'
+        )
+      done < <(fzf --multi --exit-0 --tac --no-sort)
+    echo ${RETURN}
+}
+
+
+# Vault Helper
+function vault_auth() {
+  URL="${VAULT_ADDR}/v1/auth/ldap/login/${DOMAIN_USERNAME}"
+  echo "Requesting Auth from ${URL}"
+    # -s \
+  RESULTS=$(curl \
+    -k \
+    --request POST \
+    --data "{\"password\": \"${DOMAIN_PASSWORD}\"}" \
+    ${URL})
+    echo ${RESULTS}
+    echo ${RESULTS} | jq -r 'del(.auth.client_token)'
+    echo ${RESULTS} | jq -r .auth.client_token > $HOME/.vault-token
+}
+export -f vault_auth &>/dev/null
+
+function ecr() {
+  if [ -z "$1" ]; then
+    $(aws ecr get-login --no-include-email --registry-ids ${ECR_REGISTRY} --region us-east-1)
+  else
+    $(aws ecr get-login --no-include-email --registry-ids ${ECR_REGISTRY} --region us-east-1 --profile $1)
+  fi
+}
+
+function rename_msk() {
+  if [ -z "$1" ]; then
+    echo "Must provide app name!"
+    return 1
+  fi
+  if [ -z "$2" ]; then
+    echo "Must provide target env name!"
+    return 1
+  fi
+  ls $1.* | sed "p;s/${1}/${1}-${2}/" | xargs -n2 mv
+}
 
 # Auto complete
 source <(stern --completion=zsh)
+source <(kubectl completion zsh)
 
 # added by travis gem
 [ -f "${HOME}/.travis/travis.sh" ] && source "${HOME}/.travis/travis.sh"
@@ -231,3 +461,4 @@ export SDKMAN_DIR="${HOME}/.sdkman"
 
 export PATH="/usr/local/Cellar/yarn/1.9.4/bin:$PATH"
 
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
