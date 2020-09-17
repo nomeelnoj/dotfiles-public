@@ -1,3 +1,5 @@
+# Measure performance, shell is slow
+zmodload zsh/zprof
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
 #
@@ -5,7 +7,7 @@
 export ZSH="${HOME}/.oh-my-zsh"
 
 # Custom Settings
-zstyle ':completion:*' special-dirs true
+#zstyle ':completion:*' special-dirs true
 POWERLEVEL9K_PROMPT_ON_NEWLINE=true
 POWERLEVEL9K_MODE='nerdfont-complete'
 POWERLEVEL9K_SHORTEN_DIR_LENGTH=2
@@ -68,13 +70,13 @@ DISABLE_UNTRACKED_FILES_DIRTY="true"
 # Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git per-directory-history fzf)
+plugins=(git fzf)
 
 source $ZSH/oh-my-zsh.sh
 
 # User configuration
 
-export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
+export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$HOME/go/bin:$PATH"
 
 # export MANPATH="/usr/local/man:$MANPATH"
 
@@ -103,13 +105,13 @@ export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
 ########################
 # Per Directory Config #
 ########################
-function chpwd() {
-  if [ -r $PWD/.zsh_config ]; then
-    source $PWD/.zsh_config
-  else
-    source $HOME/.zshrc
-  fi
-}
+#function chpwd() {
+#  if [ -r $PWD/.zsh_config ]; then
+#    source $PWD/.zsh_config
+#  else
+#    source $HOME/.zshrc
+#  fi
+#}
 
 ##############
 # Aliases
@@ -449,7 +451,6 @@ function rename_msk() {
 }
 
 # Auto complete
-source <(stern --completion=zsh)
 source <(kubectl completion zsh)
 
 # added by travis gem
@@ -461,4 +462,7 @@ export SDKMAN_DIR="${HOME}/.sdkman"
 
 export PATH="/usr/local/Cellar/yarn/1.9.4/bin:$PATH"
 
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+#  Is this causing the slow down?
+#[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+
+zprof
