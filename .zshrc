@@ -1,5 +1,5 @@
 # Measure performance, shell is slow
-zmodload zsh/zprof
+# zmodload zsh/zprof
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
 #
@@ -7,7 +7,7 @@ zmodload zsh/zprof
 export ZSH="${HOME}/.oh-my-zsh"
 
 # Custom Settings
-#zstyle ':completion:*' special-dirs true
+zstyle ':completion:*' special-dirs true
 POWERLEVEL9K_PROMPT_ON_NEWLINE=true
 POWERLEVEL9K_MODE='nerdfont-complete'
 POWERLEVEL9K_SHORTEN_DIR_LENGTH=2
@@ -351,6 +351,45 @@ function fjira() {
     --exit-0
 }
 
+function mjira() {
+  if [ -z "$2" ]; then
+    QUERY="project IN (${1}) AND assignee = ${JIRA_USER_ID} AND resolution = unresolved AND status != Closed ORDER BY created"
+  elif [ "$2" = "all" ]; then
+    QUERY="project IN (${1}) AND assignee = ${JIRA_USER_ID} ORDER BY created"
+  fi
+  local IFS=$'\n'
+  jira list \
+    --query "${QUERY}" \
+    --template list |\
+  fzf-tmux \
+    --query="$1" \
+    --multi \
+    --select-1 \
+    --preview  "echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c 'jira view %'" \
+    --bind 'enter:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira edit % < /dev/tty"
+      /,Ctrl-t:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira take %"
+      /,Ctrl-C:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira transition --resolution=Done Accepted % < /dev/tty"
+      /,Ctrl-c:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira transition --resolution=Done Done % < /dev/tty"
+      /,Ctrl-s:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira transition \"In Dev\" % --noedit"
+      /,Ctrl-S:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira transition \"In Progress\" % --noedit"
+      /' \
+    --exit-0
+}
+
+
 function tf_target() {
     local IFS=$'\n'
     local RETURN='terraform apply'
@@ -465,4 +504,4 @@ export PATH="/usr/local/Cellar/yarn/1.9.4/bin:$PATH"
 #  Is this causing the slow down?
 #[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
-zprof
+#zprof
