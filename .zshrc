@@ -144,6 +144,9 @@ alias tfi="terraform init --upgrade"
 alias tfa="terraform apply"
 alias gitcm="git checkout master"
 alias gmp="git checkout master && git pull"
+alias clip="pbcopy"
+alias clipi="tee <(pbcopy)"
+alias airport="/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport"
 
 #################
 # Env Variables #
@@ -198,6 +201,26 @@ function secretseal() {
     kubectl --context=${4} create secret generic ${1} --dry-run --from-file=${2}=${3} -o json | kubeseal --cert sealed-secrets-${4}.crt --format yaml > ${1}.yaml
 }
 
+function kms_secret() {
+    if [ -z "$1" ]
+    then
+        echo "FATAL: Enter a key alias the first arg (starting with alias)"
+        return 1
+    fi
+    if [ -z "$2" ]
+    then
+        echo "FATAL: Enter a secret value as the second arg"
+        return 1
+    fi
+    aws kms encrypt --key-id "${1}" --plaintext "$2" --output text --query CiphertextBlob | clip
+}
+
+function find_replace() {
+    # Exclude dot files/folders
+    perl -p -i -e "s|$1|$2|g" \
+    $(find . -type f -not -path '*/\.*')
+}
+
 validate_aws_credentials() {
   if [[ -z ${1+x} ]]; then PROFILES=${AWS_PROFILE}; else PROFILES=${1}; fi
   echo "profiles list: $PROFILES"
@@ -248,8 +271,8 @@ okta_auth() {
       --mfa-provider DUO \
       --mfa-duo-device ${DUO_DEVICE} \
       --mfa-factor-type web \
-      --assume-role-ttl 10h \
-      --session-ttl 10h \
+      --assume-role-ttl 12h \
+      --session-ttl 12h \
       write-to-credentials \
       ${PROFILE} \
       ~/.aws/credentials
@@ -305,6 +328,7 @@ function greb() {
     git fetch origin && git rebase origin/${REMOTE}
 }
 
+
 function tjira() {
   if [ -z "$2" ]; then
     QUERY="--query 'project IN (${1}) AND resolution = unresolved AND status != Closed ORDER BY created'"
@@ -351,11 +375,14 @@ function fjira() {
     --exit-0
 }
 
+# My tickets
 function mjira() {
   if [ -z "$2" ]; then
     QUERY="project IN (${1}) AND assignee = ${JIRA_USER_ID} AND resolution = unresolved AND status != Closed ORDER BY created"
   elif [ "$2" = "all" ]; then
     QUERY="project IN (${1}) AND assignee = ${JIRA_USER_ID} ORDER BY created"
+  elif [ -z "$1" ]; then
+    QUERY="assignee = ${JIRA_USER_ID} AND resolution = unresolved AND status != Closed ORDER BY created"
   fi
   local IFS=$'\n'
   jira list \
@@ -389,6 +416,31 @@ function mjira() {
     --exit-0
 }
 
+# Unresolved tickets in current sprint
+function sjira() {
+  QUERY="project = DATA AND assignee = ${JIRA_USER_ID} AND sprint in openSprints() AND resolution = unresolved AND status != Closed ORDER BY created"
+  local IFS=$'\n'
+  jira list \
+    --query "${QUERY}" \
+    --template list |\
+  fzf-tmux \
+    --query="$1" \
+    --multi \
+    --select-1 \
+    --preview  "echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c 'jira view %'" \
+    --bind 'enter:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira edit % < /dev/tty"
+      /,Ctrl-c:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira transition --resolution=Done Accepted % < /dev/tty"
+      /,Ctrl-s:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira transition \"In Dev\" % --noedit"
+      /' \
+    --exit-0
+}
 
 function tf_target() {
     local IFS=$'\n'
@@ -487,6 +539,13 @@ function rename_msk() {
     return 1
   fi
   ls $1.* | sed "p;s/${1}/${1}-${2}/" | xargs -n2 mv
+}
+
+function kubectlgetall {
+  for i in $(kubectl api-resources --verbs=list --namespaced -o name | grep -v "events.events.k8s.io" | grep -v "events" | sort | uniq); do
+    echo "Resource:" $i
+    kubectl get --ignore-not-found ${i} -A -o yaml >> $1
+  done
 }
 
 # Auto complete
