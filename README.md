@@ -10,17 +10,29 @@ Install Powerlevel9k:
 Install Powerline Nerd Fonts:
 `https://github.com/ryanoasis/nerd-fonts`
 `https://github.com/Homebrew/homebrew-cask-fonts`
-```brew tap caskroom/fonts
+```
+brew tap caskroom/fonts
 brew cask install font-hack-nerd-font
 brew tap homebrew/cask-fonts
-brew cask install font-firamono-nerd-font```
+brew cask install font-firamono-nerd-font
+```
 
 Optional: Install powerline fonts:
 `https://powerline.readthedocs.io/en/latest/installation/linux.html#fonts-installation`
-
 
 Link .zshrc file from this repo
 
 iTerm Configs:
 18pt Fura Mono Medium for Powerline Nerd Font Complete
 
+
+# Sublime Text
+- Install Sublime Text 4
+- Configure License
+- Run the following
+
+```
+cd ~/Library/Application\ Support/Sublime\ Text\ 3/Packages
+rm -rf User
+ln -s ~/dotfiles/sublime_text_4/Packages/User User
+```
