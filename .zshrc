@@ -13,7 +13,7 @@ POWERLEVEL9K_MODE='nerdfont-complete'
 POWERLEVEL9K_SHORTEN_DIR_LENGTH=2
 # POWERLEVEL9K_SHORTEN_DELIMITER=""
 # POWERLEVEL9K_SHORTEN_STRATEGY="truncate-to-unique"
-DEFAULT_USER="jleemon"
+DEFAULT_USER="${USER}"
 # POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(virtualenv kubecontext)
 # POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(context dir vcs)
 #POWERLEVEL9K_VCS_GIT_BITBUCKET_ICON="\uE703"
@@ -451,7 +451,9 @@ alias td="traverse"
 alias ing="ingress.v1.networking.k8s.io"
 alias cloudtrail_query="~/dotfiles/cloudtrail_query.sh"
 alias gh='EDITOR="sublime --wait --new-window" gh'
+alias colordiff="git diff --no-index $1 $2"
 alias aws="aws --no-cli-pager"
+
 
 #################
 # Env Variables #
@@ -467,12 +469,84 @@ export GPG_TTY=$(tty)
 export GOBIN="/Users/jleemon/go/bin"
 export TF_PLUGIN_CACHE_DIR=~/.terraform
 export ECR_IMAGE_REPO="${ECR_REGISTRY}.dkr.ecr.us-east-1.amazonaws.com"
-
-
+export GODEBUG=asyncpreemptoff=1
 
 ###############
 ## Functions ##
 ###############
+function aws_decode() {
+  aws sts \
+    decode-authorization-message \
+    --encoded-message \
+    $@ |\
+    jq -r '.DecodedMessage | fromjson'
+}
+
+function expand_aws_attribute(){
+while read LINE
+do
+  # set -x
+  DIR_PATH="${HOME}/repo/iann0036/iam-dataset"
+  if [ -d "${DIR_PATH}" ]; then
+    CLEAN=$( echo "${LINE}" | tr -d '*')
+    RAW="-r"
+    if [[ "${CLEAN}" =~ ^\".*\"$ ]]; then
+      CLEAN=$(echo ${CLEAN} | cut -d \" -f2)
+      RAW=""
+    fi
+    if [[ "${CLEAN}" =~ ^\".*\",$ ]]; then
+      CLEAN=$(echo ${CLEAN} | cut -d \" -f2)
+      RAW=""
+    fi
+    RESULTS=$(cat "${DIR_PATH}/map.json" |\
+    jq \
+      ${RAW} \
+      --arg key "${CLEAN}" \
+      '.sdk_method_iam_mappings[][] |
+       select(.action | startswith($key)) |
+       .action ' | sort | uniq
+    )
+    if [[ "${RAW}" == "" ]]; then
+      echo "${RESULTS}" | sort | uniq | sed 's/$/,/'
+    else
+     echo "${RESULTS}" | sort | uniq
+    fi
+ else
+   echo "Please Clone 'https://github.com/iann0036/iam-dataset'"
+  fi
+done < "${1:-/dev/stdin}"
+}
+
+function git_clone() {
+  if [[ ! "${1}" == *"http"* ]]; then
+    echo "Currently only http is supported"
+    exit 10
+  fi
+
+  REPO=$(basename "${1}")
+  ORG=$(basename $(dirname "${1}"))
+  TLD=$(basename $(dirname $(dirname "${1}")))
+  DOMAIN="${TLD/.*/}"
+  DIR="${HOME}/src/${DOMAIN}/${ORG}/${REPO}"
+  if [ -d "${DIR}" ]; then
+    echo "Repo ${1} already exists at '${DIR}'"
+  else
+    mkdir -p "${DIR}"
+    git clone "${1}" "${DIR}"
+  fi
+  cd ${DIR}
+}
+
+function awsp() {
+  # Sets the AWS profile via environment variable
+  if [ -z "$1" ]; then
+    echo "FATAL: Enter a profile"
+    return 1
+  else
+    export AWS_PROFILE=$1
+  fi
+}
+
 function kcadmin() {
   if [ -z "$1" ]; then
     kubectl exec -it $(kubectl get pod --selector=release=admin-pod -o jsonpath='{.items[*].metadata.name}') -- bash
@@ -559,6 +633,18 @@ function find_replace() {
     # Exclude dot files/folders
     perl -p -i -e "s|$1|$2|g" \
     $(find . -type f -not -path '*/\.*')
+}
+
+function find_replace_setup() {
+    # Exclude dot files/folders
+    perl -p -i -e "s|$1|$2|g" \
+    $(find . -type f -not -path '*/\.*' -name 'setup.tf')
+}
+
+function find_replace_setup_json() {
+    # Exclude dot files/folders
+    perl -p -i -e "s|$1|$2|g" \
+    $(find . -type f -not -path '*/\.*' -name 'setup.tf.json')
 }
 
 validate_aws_credentials() {
@@ -682,8 +768,23 @@ ldap_public_key() {
 }
 
 function greb() {
-    REMOTE=${1:-main}
+    REMOTE=${1:-$(git_main_branch)}
     git fetch origin && git rebase origin/${REMOTE}
+}
+
+get_me_creds() {
+  aws sso get-role-credentials \
+    --account-id $(aws configure get sso_account_id --profile ${AWS_PROFILE}) \
+    --role-name $(aws configure get sso_role_name --profile ${AWS_PROFILE}) \
+    --access-token $(find ~/.aws/sso/cache -type f ! -name "botocore*.json" | xargs jq -r .accessToken) \
+    --region $(aws configure get region --profile ${AWS_PROFILE}) |\
+  jq -r '.roleCredentials |
+      {
+        "AWS_ACCESS_KEY_ID": .accessKeyId,
+        "AWS_SECRET_ACCESS_KEY": .secretAccessKey,
+        "AWS_SESSION_TOKEN": .sessionToken,
+        "AWS_CREDENTIALS_EXPIRATION": (.expiration / 1000 | todate)
+      } | keys[] as $k | "export \($k)=\(.[$k])"'
 }
 
 # Typora
@@ -808,6 +909,25 @@ function sjira() {
     --exit-0
 }
 
+fjq() {
+  local TEMP QUERY
+  TEMP=$(mktemp -t fjq)
+  cat > "$TEMP"
+  QUERY=$(
+    jq -C . "$TEMP" |
+      fzf \
+      --reverse \
+      --ansi \
+      --prompt 'jq> ' --query '.' \
+      --preview "set -x; jq -C {q} \"$TEMP\"" \
+      --header 'Press CTRL-Y to copy expression to the clipboard and quit' \
+      --bind 'ctrl-y:execute-silent(echo -n {q} | pbcopy)+abort' \
+      --print-query | head -1
+  )
+  [ -n "$QUERY" ] && jq "$QUERY" "$TEMP"
+}
+
+
 function tf_target() {
     local IFS=$'\n'
     local RETURN='terraform apply'
@@ -896,8 +1016,8 @@ function vault_auth() {
     --request POST \
     --data "{\"password\": \"${DOMAIN_PASSWORD}\"}" \
     ${URL})
-    echo ${RESULTS}
-    echo ${RESULTS} | jq -r 'del(.auth.client_token)'
+    # echo ${RESULTS}
+    # echo ${RESULTS} | jq -r 'del(.auth.client_token)'
     echo ${RESULTS} | jq -r .auth.client_token > $HOME/.vault-token
 }
 export -f vault_auth &>/dev/null
@@ -953,7 +1073,9 @@ traverse() {
   local dir=$(
     [ $# = 1 ] && [ -d "$1" ] && cd "$1"
     while true; do
-      find "$PWD" -type d
+      find "$PWD" -type d -not -path '*/\.*'
+      # if [[ "$(file -b --mime-encoding "$file")" = binary ]];
+      #       { echo "Skipping   $file."; continue; }
       echo "$PWD"
       [ $PWD = / ] && break
       cd ..
