@@ -6,6 +6,8 @@
 # Path to your oh-my-zsh installation.
 export ZSH="${HOME}/.oh-my-zsh"
 
+alias gam3="/usr/local/bin/gamadv-xtd3/gam"
+
 # Custom Settings
 zstyle ':completion:*' special-dirs true
 POWERLEVEL9K_PROMPT_ON_NEWLINE=true
@@ -409,7 +411,7 @@ export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$HOME/go/bin:$PATH"
 #  fi
 #}
 
-##############
+#############
 # Aliases
 #############
 alias gam="python ${HOME}/src/GAM/GAM-3.65/src/gam.py"
@@ -454,7 +456,6 @@ alias gh='EDITOR="sublime --wait --new-window" gh'
 alias colordiff="git diff --no-index $1 $2"
 alias aws="aws --no-cli-pager"
 
-
 #################
 # Env Variables #
 #################
@@ -474,6 +475,10 @@ export GODEBUG=asyncpreemptoff=1
 ###############
 ## Functions ##
 ###############
+#function whitespace() {
+#  printf %q $@
+#}
+
 function aws_decode() {
   aws sts \
     decode-authorization-message \
@@ -617,7 +622,7 @@ function kms_secret() {
         echo "FATAL: Enter a secret value as the second arg"
         return 1
     fi
-    aws kms encrypt --key-id "${1}" --plaintext "$2" --output text --query CiphertextBlob | clip
+    aws kms encrypt --key-id "${1}" --plaintext fileb://<(echo -n "$2") --output text --query CiphertextBlob | clip
 }
 
 function kms_decrypt {
@@ -656,6 +661,11 @@ validate_aws_credentials() {
     echo "AWS Profile: ${AWS_PROFILE}"
     PAGER="cat" aws2 sts get-caller-identity --profile $AWS_PROFILE
   done
+}
+
+function restart_gp() {
+  launchctl unload /Library/LaunchAgents/com.paloaltonetworks.gp.pangp*
+  launchctl load /Library/LaunchAgents/com.paloaltonetworks.gp.pangp*
 }
 
 function get_secret() {
@@ -753,6 +763,37 @@ function ldap_group() {
   grep -v 'requesting:' | \
   grep 'member' | \
   cut -d " " -f2-
+}
+
+ldap_profile() {
+  ldapsearch \
+    -o ldif-wrap=no \
+    -H ldaps://${DOMAIN_CONTROLLER}:636 \
+    -D "${DOMAIN_DN}" \
+    -w "${DOMAIN_PASSWORD}" \
+    -b "${DOMAIN_ROOT}" "(&(cn=*)(sAMAccountName=$1))" | \
+  sed -n '/# requesting:/,/# search reference/p' |\
+  grep -v '# search'
+}
+
+ldap_id() {
+  ldapsearch \
+    -o ldif-wrap=no \
+    -H ldaps://${DOMAIN_CONTROLLER}:636 \
+    -D "${DOMAIN_DN}" \
+    -w "${DOMAIN_PASSWORD}" \
+    -b "${DOMAIN_ROOT}" "(&(cn=*)(sAMAccountName=$1))" 'mail' 'sAMAccountName' 'name' | \
+  grep -E 'mail|sAMAccountName|name'
+}
+
+ldap_email() {
+  ldapsearch \
+    -o ldif-wrap=no \
+    -H ldaps://${DOMAIN_CONTROLLER}:636 \
+    -D "${DOMAIN_DN}" \
+    -w "${DOMAIN_PASSWORD}" \
+    -b "${DOMAIN_ROOT}" "(&(cn=*)(mail=$1))" 'mail' 'sAMAccountName' 'name' | \
+  grep -E 'mail|sAMAccountName|name'
 }
 
 ldap_public_key() {
@@ -996,12 +1037,12 @@ function tf_list() {
     while read -r line;
     do
         RETURN+=$(
-          echo "\n${line}" | \
+          echo "'\n${line}'" | \
           cut \
             -d ' ' \
-            -f 4 | \
-          sed \
-            -e 's/\"/\\\"/g'
+            -f 4 # | \
+          # sed \
+          #   -e 's/\"/\\\"/g'
         )
       done < <(fzf --multi --exit-0 --tac --no-sort)
     echo ${RETURN}
@@ -1028,6 +1069,17 @@ function ecr() {
   else
     $(aws ecr get-login --no-include-email --registry-ids ${ECR_REGISTRY} --region us-east-1 --profile $1)
   fi
+}
+
+function assume_role() {
+  if [ -z "$3" ]; then
+    echo "No role session name provided in \$3, using 'default'"
+  fi
+  ROLE_SESSION_NAME=${3:-default}
+  ASSUME_ROLE=$(aws sts assume-role --role-arn $1 --role-session-name ${ROLE_SESSION_NAME} --profile $2)
+  export AWS_ACCESS_KEY_ID=$(echo $ASSUME_ROLE | jq -r '.Credentials.AccessKeyId')
+  export AWS_SECRET_ACCESS_KEY=$(echo $ASSUME_ROLE | jq -r '.Credentials.SecretAccessKey')
+  export AWS_SESSION_TOKEN=$(echo $ASSUME_ROLE | jq -r '.Credentials.SessionToken')
 }
 
 function rename_msk() {
@@ -1142,6 +1194,58 @@ function s3_import(){
     if [ "${WEBSITE}" = "true" ]; then
         terraform import 'module.s3.aws_s3_bucket_website_configuration.default[0]' $BUCKET
     fi
+}
+
+# Recursive function that will
+# - List all the secrets in the given $path
+# - Call itself for all path values in the given $path
+function traverse_vault_helper {
+    if [ -z "$1" ]; then
+      echo "You must provide a vault addr as the first arg!"
+      return 1
+    else
+      local VAULT_ADDR="${1}"
+    fi
+    local readonly VAULT_TRAVERSE_PATH="$2"
+
+    RESULT=$(VAULT_ADDR=${VAULT_ADDR} vault kv list -format=json "${VAULT_TRAVERSE_PATH}" 2>&1)
+
+    STATUS=$?
+    if [ ! $STATUS -eq 0 ];
+    then
+      if [[ $RESULT =~ "permission denied" ]]; then
+        return
+      fi
+      >&2 echo "${RESULT}"
+    fi
+
+    for SECRET in $(echo "${RESULT}" | jq -r '.[]'); do
+        if [[ "${SECRET}" == */ ]]; then
+            traverse_vault_helper "${VAULT_TRAVERSE_PATH}${SECRET}"
+        else
+            echo "${VAULT_TRAVERSE_PATH}${SECRET}"
+        fi
+    done
+}
+
+function traverse_vault {
+  if [ -z "$1" ]; then
+    echo "You must provide a vault addr as the first arg!"
+    return 1
+  else
+    local VAULT_ADDR="${1}"
+  fi
+
+  if [[ "$2" ]]; then
+      # Make sure the path always end with '/'
+      VAULTS=("${2%"/"}/")
+  else
+      VAULTS=$(VAULT_ADDR="${VAULT_ADDR}" vault secrets list -format=json | jq -r 'to_entries[] | select(.value.type =="kv") | .key')
+  fi
+
+  for VAULT in $VAULTS; do
+      traverse_vault_helper ${VAULT_ADDR} ${VAULT}
+  done
 }
 
 function dc_trace_cmd() {
