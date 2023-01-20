@@ -980,7 +980,8 @@ function tf_target() {
             -d ' ' \
             -f 4 | \
           sed \
-            -e 's/^/ --target=/'
+            -e "s/^/ --target='/" |\
+          sed -e "s/$/'/"
         )
       done < <(fzf --multi --exit-0 --tac --no-sort)
     echo ${RETURN}
@@ -1277,3 +1278,8 @@ export PATH="/usr/local/Cellar/yarn/1.9.4/bin:$PATH"
 #[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
 #zprof
+#
+#
+# HELPER JQ FUNCTIONS
+# # .module | to_entries[] | .key as $key | .value[] | select(.source | endswith("iam_role")) | {key: $key, value: .assume_role_policies}
+# # .module | to_entries[] | .key as $key | .value[] | select(.source | endswith("iam_role")) | {($key): has("assume_role_policies")}
