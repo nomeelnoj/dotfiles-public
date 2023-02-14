@@ -1,0 +1,10 @@
+.DS_Store
+**/files_to_ignore/*
+**/*.keystore.jks
+**/*.truststore.jks
+**/*.crt
+**/*.key
+**/jenkins.gdsl
+**/jon*
+**/generic-truststore.jks
+**/import.sh

@@ -1,0 +1,13 @@
+{
+  "aws-iam-authenticator": "kubernetes-sigs/aws-iam-authenticator",
+  "dyff": "homeport/dyff",
+  "fzf": "junegunn/fzf",
+  "hcl2json": "tmccombs/hcl2json",
+  "hcledit": "minamijoyo/hcledit",
+  "iam-policy-json-to-terraform": "flosell/iam-policy-json-to-terraform",
+  "jira": "go-jira/jira",
+  "json2hcl": "kvz/json2hcl",
+  "jwt": "mike-engel/jwt-cli",
+  "terraform-state-mover": "mbode/terraform-state-mover",
+  "watch": "sachaos/viddy"
+}

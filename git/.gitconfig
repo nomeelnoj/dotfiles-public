@@ -2,7 +2,6 @@
 	name = Jon Leemon
   username = nomeelnoj
 	email = nomeelnoj@users.noreply.github.com
-  username = nomeelnoj
   signingkey = 6841E1414EEA439D
 [alias]
   lol = log --oneline --abbrev-commit
@@ -26,15 +25,8 @@
   added = green
   changed = yellow
   untracked = red
-
 [core]
 	excludesfile = ${HOME}/.gitignore_global
-[difftool "sourcetree"]
-  cmd = opendiff \"$LOCAL\" \"$REMOTE\"
-  path = 
-[mergetool "sourcetree"]
-  cmd = /Applications/Sourcetree.app/Contents/Resources/opendiff-w.sh \"$LOCAL\" \"$REMOTE\" -ancestor \"$BASE\" -merge \"$MERGED\"
-  trustExitCode = true
 [commit]
 	template = ${HOME}/.stCommitMsg
 	gpgsign = true

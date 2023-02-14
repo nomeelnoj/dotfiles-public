@@ -3,6 +3,8 @@
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
 #
+export PATH="$HOME/go/bin:/usr/local/go/bin:/opt/homebrew/opt/grep/libexec/gnubin:/opt/homebrew/bin:$PATH"
+
 # Path to your oh-my-zsh installation.
 export ZSH="${HOME}/.oh-my-zsh"
 
@@ -314,7 +316,7 @@ function prompt_vault() {
 }
 
 # Setup shell integration
-source ~/dotfiles/.iterm2_shell_integration.zsh
+source $HOME/src/github.com/nomeelnoj/dotfiles/.iterm2_shell_integration.zsh
 
 # Set name of the theme to load. Optionally, if you set this to "random"
 # it'll load a random theme each time that oh-my-zsh is loaded.
@@ -1274,10 +1276,24 @@ export SDKMAN_DIR="${HOME}/.sdkman"
 
 export PATH="/usr/local/Cellar/yarn/1.9.4/bin:$PATH"
 
-#  Is this causing the slow down?
 export PATH="$HOME/go/bin:/usr/local/go/bin:/opt/homebrew/opt/grep/libexec/gnubin:/opt/homebrew/bin:$PATH"
 
 #[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+# ^^^ This file looks like this:
+# Setup fzf
+# ---------
+# if [[ ! "$PATH" == */usr/local/opt/fzf/bin* ]]; then
+#   export PATH="${PATH:+${PATH}:}/usr/local/opt/fzf/bin"
+# fi
+
+# # Auto-completion
+# # ---------------
+# [[ $- == *i* ]] && source "/usr/local/opt/fzf/shell/completion.zsh" 2> /dev/null
+
+# # Key bindings
+# # ------------
+# source "/usr/local/opt/fzf/shell/key-bindings.zsh"
+# END SETUP FZF
 
 #zprof
 #

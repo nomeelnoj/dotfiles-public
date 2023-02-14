@@ -24,9 +24,8 @@ get_package() {
     rm -rf "${TEMP_DIR}"
 }
 
-# CURRENT_DIR=$(pwd)
-# echo "Current dir is ${CURRENT_DIR}"
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
 OLDIFS=$IFS
 IFS=$'\n'
 PACKAGES=$(cat "${SCRIPT_DIR}/hashicorp_packages.txt")

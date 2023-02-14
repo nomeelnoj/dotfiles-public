@@ -1,2 +1,2 @@
-iterm2
-sublime-text
+copyq
+alfred
