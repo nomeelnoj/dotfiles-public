@@ -7,6 +7,8 @@
   lol = log --oneline --abbrev-commit
   ch = log --oneline --abbrev-commit -p -5
   st = status
+  pu = push -u
+  com = commit -s
 [color]
   ui = auto
   push = true
@@ -34,5 +36,33 @@
   default = current
 [branch]
   autosetuprebase = always
+[pull]
+  rebase = true
 [gpg]
-	program = gpg
+  program = gpg
+# uncomment to output log to stdout
+#[pager]
+# log = false
+[url "git@github.com:"]
+  insteadOf = https://github.com/
+[submodule]
+  recurse = true
+[format]
+  signoff = true
+[init]
+  defaultBranch = main
+[diff]
+  renameLimit = 10000
+[diff "dyff"]
+  command = "echo \"$2\n$5\"; \
+                dyff \
+                  --color on \
+                  --omit-header \
+                  --detect-kubernetes \
+                  between \
+                  \"$2\" \"$5\" \
+                || git diff \
+                  --no-ext-diff \
+                  --no-index \
+                  \"$2\" \"$5\" \
+                || exit_code=$?"
