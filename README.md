@@ -1,38 +1,30 @@
-# dotfiles
-custom env options for myself
+# Dotfiles
 
-Install oh my ZSH:
-`sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"`
+1. Create SSH key in temp location and upload to Github
 
-Install Powerlevel9k:
-`git clone https://github.com/bhilburn/powerlevel9k.git ~/.oh-my-zsh/custom/themes/powerlevel9k`
+    ```
+    ssh-keygen -t ed25519 -f ~/ssh_temp -C 'Comment'
+    cat ~/ssh_temp.pub | pbcopy
+    ```
 
-Install Powerline Nerd Fonts:
-`https://github.com/ryanoasis/nerd-fonts`
-`https://github.com/Homebrew/homebrew-cask-fonts`
-```
-brew tap caskroom/fonts
-brew cask install font-hack-nerd-font
-brew tap homebrew/cask-fonts
-brew cask install font-firamono-nerd-font
-```
+2. Install xcode tools: `xcode-select --install`
 
-Optional: Install powerline fonts:
-`https://powerline.readthedocs.io/en/latest/installation/linux.html#fonts-installation`
+3. Install Rosetta: `softwareupdate --install-rosetta`
 
-Link .zshrc file from this repo
+4. Disable SIP: Reboot, type `csrutil disable`
 
-iTerm Configs:
-18pt Fura Mono Medium for Powerline Nerd Font Complete
+5. `sudo mkdir /usr/local/bin`; `sudo chown -R $USER:staff /usr/local/bin`
+
+6. Clone dotfiles:
+
+    ```
+    mkdir -p $HOME/src/github.com/nomeelnoj
+    GIT_SSH_COMMAND='ssh -i ~/ssh_temp' git clone git@github.com:nomeelnoj/dotfiles.git
+    ```
+
+7. Run bootstrap.sh
 
 
-# Sublime Text
-- Install Sublime Text 4
-- Configure License
-- Run the following
+# Install Oh My Zsh
 
-```
-cd ~/Library/Application\ Support/Sublime\ Text\ 3/Packages
-rm -rf User
-ln -s ~/dotfiles/sublime_text_4/Packages/User User
-```
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"

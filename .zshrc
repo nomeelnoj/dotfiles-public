@@ -374,7 +374,7 @@ source $ZSH/oh-my-zsh.sh
 
 # User configuration
 
-export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$HOME/go/bin:$PATH"
+# export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$HOME/go/bin:$PATH"
 
 # export MANPATH="/usr/local/man:$MANPATH"
 
@@ -1275,6 +1275,8 @@ export SDKMAN_DIR="${HOME}/.sdkman"
 export PATH="/usr/local/Cellar/yarn/1.9.4/bin:$PATH"
 
 #  Is this causing the slow down?
+export PATH="$HOME/go/bin:/usr/local/go/bin:/opt/homebrew/opt/grep/libexec/gnubin:/opt/homebrew/bin:$PATH"
+
 #[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
 #zprof
