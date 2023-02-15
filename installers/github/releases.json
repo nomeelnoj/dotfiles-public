@@ -9,5 +9,6 @@
   "json2hcl": "kvz/json2hcl",
   "jwt": "mike-engel/jwt-cli",
   "terraform-state-mover": "mbode/terraform-state-mover",
-  "watch": "sachaos/viddy"
+  "watch": "sachaos/viddy",
+  "mlr": "johnkerl/miller"
 }

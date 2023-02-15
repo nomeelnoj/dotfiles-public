@@ -1,5 +1,6 @@
 .DS_Store
-**/files_to_ignore/*
+run.sh
+files_to_ignore/*
 **/*.keystore.jks
 **/*.truststore.jks
 **/*.crt
