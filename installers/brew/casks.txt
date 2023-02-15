@@ -1,2 +1,6 @@
-copyq
 alfred
+iterm2
+sublime-text
+dropbox
+copyq
+istat-menus

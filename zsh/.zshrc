@@ -544,6 +544,23 @@ function git_clone() {
   cd ${DIR}
 }
 
+function git_clone() {
+  URL="${1%.*}"
+  CLEANED_URL=$(echo "${URL}" | awk -F ':' '{print $NF}')
+  REPO=$(basename "${CLEANED_URL}")
+  ORG=$(basename $(dirname "${CLEANED_URL}"))
+  # TLD=$(basename $(dirname $(dirname "${1}")))
+  DOMAIN=$(echo "${URL}" | awk -F '@' '{print $2}' | awk -F ':' '{print $1}s')
+  DIR="${HOME}/src/${DOMAIN}/${ORG}/${REPO}"
+  if [ -d "${DIR}" ]; then
+    echo "Repo ${1} already exists at '${DIR}'"
+  else
+    mkdir -p "${DIR}"
+    git clone "${URL}" "${DIR}"
+  fi
+  cd ${DIR}
+}
+
 function awsp() {
   # Sets the AWS profile via environment variable
   if [ -z "$1" ]; then
@@ -1266,6 +1283,9 @@ function dc_trace_cmd() {
 # Completion
 # source <(stern --completion=zsh)
 command -v flux >/dev/null && . <(flux completion zsh) && compdef _flux flux
+
+# Make sure PATH is not duplicated
+typeset -U path
 
 # added by travis gem
 [ -f "${HOME}/.travis/travis.sh" ] && source "${HOME}/.travis/travis.sh"

@@ -2,3 +2,9 @@ wget
 grep
 gnupg
 sponge
+cloc
+grep
+gnu-sed
+graphviz
+tmux
+tree
