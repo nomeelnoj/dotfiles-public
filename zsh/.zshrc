@@ -3,7 +3,12 @@
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
 #
-export PATH="$HOME/go/bin:/usr/local/go/bin:/opt/homebrew/opt/grep/libexec/gnubin:/opt/homebrew/bin:$PATH"
+export PATH="$HOME/go/bin:$PATH"
+export PATH="/usr/local/go/bin:$PATH"
+export PATH="/opt/homebrew/opt/grep/libexec/gnubin:$PATH"
+export PATH="/opt/homebrew/opt/gnu-sed/libexec/gnubin:$PATH"
+export PATH="/opt/homebrew/opt/gnu-sed/libexec/gnubin:$PATH"
+export PATH="/opt/homebrew/bin:$PATH"
 
 # Path to your oh-my-zsh installation.
 export ZSH="${HOME}/.oh-my-zsh"
@@ -524,39 +529,51 @@ do
 done < "${1:-/dev/stdin}"
 }
 
-function git_clone() {
-  if [[ ! "${1}" == *"http"* ]]; then
-    echo "Currently only http is supported"
-    exit 10
-  fi
+# function git_clone() {
+#   if [[ ! "${1}" == *"http"* ]]; then
+#     echo "Currently only http is supported"
+#     exit 10
+#   fi
 
-  REPO=$(basename "${1}")
-  ORG=$(basename $(dirname "${1}"))
-  TLD=$(basename $(dirname $(dirname "${1}")))
-  DOMAIN="${TLD/.*/}"
-  DIR="${HOME}/src/${DOMAIN}/${ORG}/${REPO}"
-  if [ -d "${DIR}" ]; then
-    echo "Repo ${1} already exists at '${DIR}'"
+#   REPO=$(basename "${1}")
+#   ORG=$(basename $(dirname "${1}"))
+#   TLD=$(basename $(dirname $(dirname "${1}")))
+#   DOMAIN="${TLD/.*/}"
+#   DIR="${HOME}/src/${DOMAIN}/${ORG}/${REPO}"
+#   if [ -d "${DIR}" ]; then
+#     echo "Repo ${1} already exists at '${DIR}'"
+#   else
+#     mkdir -p "${DIR}"
+#     git clone "${1}" "${DIR}"
+#   fi
+#   cd ${DIR}
+# }
+
+function git_clone() {
+  set -xs
+  if [[ "${1}" = *"git@github.com"* ]]; then
+    URL="${1%.*}"
+    CLEANED_URL=$(echo "${URL}" | awk -F ':' '{print $NF}')
+    REPO=$(basename "${CLEANED_URL}")
+    ORG=$(basename $(dirname "${CLEANED_URL}"))
+    # TLD=$(basename $(dirname $(dirname "${1}")))
+    DOMAIN=$(echo "${URL}" | awk -F '@' '{print $2}' | awk -F ':' '{print $1}s')
   else
-    mkdir -p "${DIR}"
-    git clone "${1}" "${DIR}"
+    REPO=$(basename "${1}")
+    ORG=$(basename $(dirname "${1}"))
+    DOMAIN="github.com"
+    URL="git@github.com:${1}.git"
   fi
-  cd ${DIR}
-}
-
-function git_clone() {
-  URL="${1%.*}"
-  CLEANED_URL=$(echo "${URL}" | awk -F ':' '{print $NF}')
-  REPO=$(basename "${CLEANED_URL}")
-  ORG=$(basename $(dirname "${CLEANED_URL}"))
-  # TLD=$(basename $(dirname $(dirname "${1}")))
-  DOMAIN=$(echo "${URL}" | awk -F '@' '{print $2}' | awk -F ':' '{print $1}s')
   DIR="${HOME}/src/${DOMAIN}/${ORG}/${REPO}"
   if [ -d "${DIR}" ]; then
     echo "Repo ${1} already exists at '${DIR}'"
   else
     mkdir -p "${DIR}"
     git clone "${URL}" "${DIR}"
+    if [ "$?" -ne 0 ]; then
+      echo "Clone failed"
+      rm -r "${DIR}"
+    fi
   fi
   cd ${DIR}
 }
