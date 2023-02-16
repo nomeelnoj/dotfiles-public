@@ -550,7 +550,6 @@ done < "${1:-/dev/stdin}"
 # }
 
 function git_clone() {
-  set -xs
   if [[ "${1}" = *"git@github.com"* ]]; then
     URL="${1%.*}"
     CLEANED_URL=$(echo "${URL}" | awk -F ':' '{print $NF}')
