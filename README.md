@@ -1,6 +1,8 @@
-# Dotfiles
+# dotfiles
 
-1. Allow using /usr/local/bin without sudo
+This repo is as automated as possible, with dotfile setup being a script that calls out elsewhere.  Some things are tricky or more trouble than they are worth to set up in an automated way, so there are echo commands telling the user to configure them.
+
+1. Change permissions on /usr/local/bin to allow using it without sudo
 
     ```
     sudo mkdir /usr/local/bin
@@ -23,7 +25,7 @@
     ssh-keygen -t ed25519 -f ~/ssh_temp -C 'Comment'
     ```
 
-3. Install xcode tools: `xcode-select --install`
+3. Install xcode tools (you need it to run git): `xcode-select --install`
 
 4. Install Rosetta: `softwareupdate --install-rosetta`
 
@@ -39,12 +41,8 @@
 
     ```
     mkdir -p $HOME/src/github.com/nomeelnoj
-    GIT_SSH_COMMAND='ssh -i ~/ssh_temp' git clone git@github.com:nomeelnoj/dotfiles.git
+    GIT_SSH_COMMAND='ssh -o StrictHostKeyChecking=no -i ~/ssh_temp' git clone git@github.com:nomeelnoj/dotfiles.git
+    rm ~/ssh_temp*
     ```
 
 7. Run `./bootstrap.sh`
-
-
-# Install Oh My Zsh
-
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"

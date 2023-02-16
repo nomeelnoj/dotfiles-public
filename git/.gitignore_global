@@ -1,11 +1,19 @@
+# Mac Files
 .DS_Store
+
+# Common Directories
+files_to_ignore/**
+jon*/**
+
+# Helper Scripts
 run.sh
-files_to_ignore/*
-**/*.keystore.jks
-**/*.truststore.jks
-**/*.crt
-**/*.key
-**/jenkins.gdsl
-**/jon*
-**/generic-truststore.jks
-**/import.sh
+import.sh
+
+# Certificates and keys
+*.keystore.jks
+*.truststore.jks
+*.crt
+*.key
+
+# Jenkins dsl
+jenkins.gdsl

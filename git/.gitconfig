@@ -28,6 +28,7 @@
   changed = yellow
   untracked = red
 [core]
+  attributesfile = ~/.gitattributes
 	excludesfile = ${HOME}/.gitignore_global
 [commit]
 	template = ${HOME}/.stCommitMsg
@@ -53,16 +54,8 @@
   defaultBranch = main
 [diff]
   renameLimit = 10000
-[diff "dyff"]
-  command = "echo \"$2\n$5\"; \
-                dyff \
-                  --color on \
-                  --omit-header \
-                  --detect-kubernetes \
-                  between \
-                  \"$2\" \"$5\" \
-                || git diff \
-                  --no-ext-diff \
-                  --no-index \
-                  \"$2\" \"$5\" \
-                || exit_code=$?"
+[diff "git-dyff"]
+  command = "git-dyff --args"
+# Specifics per company
+[includeIf "gitdir:~/src/COMPANY_GIT_ORG"]
+  path = ~/.gitcompany
