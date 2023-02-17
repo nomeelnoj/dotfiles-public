@@ -514,6 +514,7 @@ configure_copyq() {
   defaults write "com.copyq.copyq" "Theme.sel_bg" 'fg'
   defaults write "com.copyq.copyq" "Theme.sel_fg" 'bg'
   defaults write "com.copyq.copyq" "Theme.show_scrollbars" '0'
+  defaults write "com.copyq.copyq" "Options.tray_items" -int 20
 
   osascript -e 'tell application "System Events" to make login item at end with properties {name: "CopyQ",path:"/Applications/CopyQ.app", hidden:false}'
   open -a "CopyQ"
