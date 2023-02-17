@@ -33,6 +33,7 @@ This repo is as automated as possible, with dotfile setup being a script that ca
 
     ```
     gh auth login -s admin:public_key
+    gh ssh-key add ~/.ssh/ed25519 -t <tag>
     ```
 
     There is currently not a way with the GH CLI to create an API token, so you will still have to go into the github UI and create one, then set it in your `env` to allow GH CLI to work via Personal Access Token
@@ -41,7 +42,7 @@ This repo is as automated as possible, with dotfile setup being a script that ca
 
     ```
     mkdir -p $HOME/src/github.com/nomeelnoj
-    GIT_SSH_COMMAND='ssh -o StrictHostKeyChecking=no -i ~/ssh_temp' git clone git@github.com:nomeelnoj/dotfiles.git
+    GIT_SSH_COMMAND='ssh -o StrictHostKeyChecking=no -i ~/.ssh/ed25519' git clone git@github.com:nomeelnoj/dotfiles.git
     rm ~/ssh_temp*
     ```
 

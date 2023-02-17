@@ -18,7 +18,7 @@ extract_tar_binary() {
     local TOOL="${2}"
     for FILE in $(ls $TARGET_DIR); do
         if [ $(file -bI "${TARGET_DIR}/${FILE}" | cut -d ';' -f1) == "application/x-mach-binary" ]; then
-            chmod +x "${FILE}"
+            chmod +x "${TARGET_DIR}/${FILE}"
             mv "${TARGET_DIR}/${FILE}" "/usr/local/bin/${TOOL}"
         fi
     done

@@ -2,13 +2,14 @@
 	name = Jon Leemon
   username = nomeelnoj
 	email = nomeelnoj@users.noreply.github.com
-  signingkey = 6841E1414EEA439D
+  signingkey = 676373943AA051AF
 [alias]
-  lol = log --oneline --abbrev-commit
-  ch = log --oneline --abbrev-commit -p -5
-  st = status
-  pu = push -u
-  com = commit -s
+  lol   = log --oneline --abbrev-commit
+  ch    = log --oneline --abbrev-commit -p -5
+  st    = status
+  pu    = push -u
+  com   = commit -s
+  ndiff = "diff --no-ext-diff"
 [color]
   ui = auto
   push = true

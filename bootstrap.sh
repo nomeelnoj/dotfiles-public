@@ -199,9 +199,9 @@ install_brew_formulae() {
 }
 
 install_awscli() {
-  if command -v aws &>/dev/null; then
+  if command -v aws &> /dev/null; then
     echo "You already have this tool installed.  Skipping"
-    elsec
+  else
     local TARGET_DIR=$(mktemp -d)
     curl "https://awscli.amazonaws.com/AWSCLIV2.pkg" -o "${TARGET_DIR}/AWSCLIV2.pkg"
     install_pkg "${TARGET_DIR}/AWSCLIV2.pkg"
