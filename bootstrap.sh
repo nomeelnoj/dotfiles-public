@@ -199,7 +199,7 @@ install_brew_formulae() {
 }
 
 install_awscli() {
-  if command -v aws &> /dev/null; then
+  if command -v aws &>/dev/null; then
     echo "You already have this tool installed.  Skipping"
   else
     local TARGET_DIR=$(mktemp -d)
@@ -535,10 +535,12 @@ configure_istat_menus() {
 }
 
 link_files() {
-  link "${DOTFILE_PATH}/.ssh/config" "${HOME}/.ssh/config"
 
   link "${DOTFILE_PATH}/vim/.vim" "${HOME}/.vim"
   link "${DOTFILE_PATH}/vim/.vimrc" "${HOME}/.vimrc"
+  git clone https://github.com/hashivim/vim-terraform.git ~/.vim/pack/plugins/start/vim-terraform
+  git clone https://github.com/b4b4r07/vim-hcl ~/.vim/pack/plugins/start/vim-terraform
+  git clone https://tpope.io/vim/surround.git ~/.vim/pack/plugins/start/surround
 
   link "${DOTFILE_PATH}/git/git-dyff" '/usr/local/bin/git-dyff'
   link "${DOTFILE_PATH}/git/.gitattributes" "${HOME}/.gitattributes"

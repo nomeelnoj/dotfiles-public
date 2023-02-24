@@ -1,5 +1,7 @@
-" vimrc file for Jon
 " " --------------------------
+let g:terraform_fmt_on_save = 1
+
+
 filetype plugin indent on
 set nocompatible
 set tabstop=2

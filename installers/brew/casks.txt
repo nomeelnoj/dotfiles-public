@@ -4,3 +4,4 @@ sublime-text
 dropbox
 copyq
 istat-menus
+bartender
