@@ -9,6 +9,9 @@ DEPENDENCIES=(
 'jq https://github.com/stedolan/jq'
 )
 
+BLUE='\033[1;34m'
+NC='\033[0m' # no color
+
 for DEP in "${DEPENDENCIES[@]}"; do
   APP=$(echo "${DEP}" | cut -d' ' -f1)
   if [[ ! $(command -v ${APP}) ]] ; then
@@ -66,8 +69,17 @@ if [[ "${TYPE}" == '' ]]; then
    TYPE=$(basename "${ORG_FILE_PATH##*.}")
 fi
 
+if [[ "${TYPE}" == "null" ]]; then
+  TYPE=$(basename "${ORG_FILE_NAME##*.}")
+fi
+
+# Give us a newline at the top
+echo ""
+
 case "${TYPE}" in
   tf | hcl )
+    echo -e " ╭─ ${BLUE}${NEW_FILE_PATH}${NC}"
+    echo -n " │"
     dyff --color on --omit-header --detect-kubernetes \
     between \
       <(hcl2json "${ORG_FILE_PATH}") \
@@ -76,6 +88,7 @@ case "${TYPE}" in
     "${ORG_FILE_PATH}" "${NEW_FILE_PATH}"
     ;;
   csv )
+    echo -e " ╭─ ${BLUE}${NEW_FILE_PATH}${NC}"
     dyff --color on --omit-header --detect-kubernetes \
     between \
       <(mlr --c2j cat "${ORG_FILE_PATH}" | jq 'del(..|select(. == ""))') \
@@ -85,6 +98,7 @@ case "${TYPE}" in
     ;;
   * )
     echo "TYPE: '${TYPE}' was unknown defaulting to 'yaml'"
+    echo -e " ╭─ ${BLUE}${NEW_FILE_PATH}${NC}"
     dyff --color on --omit-header --detect-kubernetes \
     between \
       "${ORG_FILE_PATH}" \
