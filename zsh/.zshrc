@@ -486,72 +486,12 @@ export GODEBUG=asyncpreemptoff=1
 #  printf %q $@
 #}
 
-function aws_decode() {
-  aws sts \
-    decode-authorization-message \
-    --encoded-message \
-    $@ |\
-    jq -r '.DecodedMessage | fromjson'
-}
-
-function expand_aws_attribute(){
-while read LINE
-do
-  # set -x
-  DIR_PATH="${HOME}/repo/iann0036/iam-dataset"
-  if [ -d "${DIR_PATH}" ]; then
-    CLEAN=$( echo "${LINE}" | tr -d '*')
-    RAW="-r"
-    if [[ "${CLEAN}" =~ ^\".*\"$ ]]; then
-      CLEAN=$(echo ${CLEAN} | cut -d \" -f2)
-      RAW=""
-    fi
-    if [[ "${CLEAN}" =~ ^\".*\",$ ]]; then
-      CLEAN=$(echo ${CLEAN} | cut -d \" -f2)
-      RAW=""
-    fi
-    RESULTS=$(cat "${DIR_PATH}/map.json" |\
-    jq \
-      ${RAW} \
-      --arg key "${CLEAN}" \
-      '.sdk_method_iam_mappings[][] |
-       select(.action | startswith($key)) |
-       .action ' | sort | uniq
-    )
-    if [[ "${RAW}" == "" ]]; then
-      echo "${RESULTS}" | sort | uniq | sed 's/$/,/'
-    else
-     echo "${RESULTS}" | sort | uniq
-    fi
- else
-   echo "Please Clone 'https://github.com/iann0036/iam-dataset'"
-  fi
-done < "${1:-/dev/stdin}"
-}
-
-# function git_clone() {
-#   if [[ ! "${1}" == *"http"* ]]; then
-#     echo "Currently only http is supported"
-#     exit 10
-#   fi
-
-#   REPO=$(basename "${1}")
-#   ORG=$(basename $(dirname "${1}"))
-#   TLD=$(basename $(dirname $(dirname "${1}")))
-#   DOMAIN="${TLD/.*/}"
-#   DIR="${HOME}/src/${DOMAIN}/${ORG}/${REPO}"
-#   if [ -d "${DIR}" ]; then
-#     echo "Repo ${1} already exists at '${DIR}'"
-#   else
-#     mkdir -p "${DIR}"
-#     git clone "${1}" "${DIR}"
-#   fi
-#   cd ${DIR}
-# }
-
 function git_clone() {
   if [[ "${1}" = *"git@github.com"* ]]; then
-    URL="${1%.*}"
+    if ! [[ "${1}" = *".git"* ]]; then
+      URL="${1}.git"
+    fi
+    URL="${URL%.*}"
     CLEANED_URL=$(echo "${URL}" | awk -F ':' '{print $NF}')
     REPO=$(basename "${CLEANED_URL}")
     ORG=$(basename $(dirname "${CLEANED_URL}"))
@@ -576,6 +516,73 @@ function git_clone() {
   fi
   cd ${DIR}
 }
+
+function aws_decode() {
+  aws sts \
+    decode-authorization-message \
+    --encoded-message \
+    $@ |\
+    jq -r '.DecodedMessage | fromjson'
+}
+
+function expand_aws_attribute(){
+while read LINE
+do
+  # set -x
+  DIR_PATH="${HOME}/src/github.com/iann0036/iam-dataset"
+  if [ -d "${DIR_PATH}" ]; then
+    RAW="-r"
+    if [[ "${LINE}" =~ ^\".*\"$ ]]; then
+      CLEAN=$(echo ${LINE} | cut -d \" -f2)
+      RAW=""
+    fi
+    if [[ "${CLEAN}" =~ ^\".*\",$ ]]; then
+      CLEAN=$(echo ${CLEAN} | cut -d \" -f2)
+      RAW=""
+    fi
+    CLEAN=^${CLEAN//\*/\.\*}$
+    RESULTS=$(cat "${DIR_PATH}/map.json" |\
+    jq \
+      ${RAW} \
+      --arg key "${CLEAN}" \
+      '.sdk_method_iam_mappings[][] |
+      select(.action | test($key)?) |
+      .action' | sort | uniq
+      # --arg key "${CLEAN}" \
+      # '.sdk_method_iam_mappings[][] |
+      #  select(.action | startswith($key)) |
+      #  .action ' | sort | uniq
+    )
+    if [[ "${RAW}" == "" ]]; then
+      echo "${RESULTS}" | sort | uniq | sed 's/$/,/'
+    else
+     echo "${RESULTS}" | sort | uniq
+    fi
+ else
+   git_clone git@github.com:iann0036/iam-dataset
+  fi
+done < "${1:-/dev/stdin}"
+}
+
+# function git_clone() {
+#   if [[ ! "${1}" == *"http"* ]]; then
+#     echo "Currently only http is supported"
+#     exit 10
+#   fi
+
+#   REPO=$(basename "${1}")
+#   ORG=$(basename $(dirname "${1}"))
+#   TLD=$(basename $(dirname $(dirname "${1}")))
+#   DOMAIN="${TLD/.*/}"
+#   DIR="${HOME}/src/${DOMAIN}/${ORG}/${REPO}"
+#   if [ -d "${DIR}" ]; then
+#     echo "Repo ${1} already exists at '${DIR}'"
+#   else
+#     mkdir -p "${DIR}"
+#     git clone "${1}" "${DIR}"
+#   fi
+#   cd ${DIR}
+# }
 
 function awsp() {
   # Sets the AWS profile via environment variable

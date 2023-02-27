@@ -581,6 +581,11 @@ install_all() {
   # fi
   # rm kubectl*
 
+  # Install Docker
+  wget https://desktop.docker.com/mac/main/arm64/Docker.dmg -O docker.dmg
+  install_dmg docker.dmg
+  rm docker.dmg
+
   # install_brave
   # install_brew_cask
   # install_brew_formulae
