@@ -1,7 +1,7 @@
 [user]
 	name = Jon Leemon
   username = nomeelnoj
-	email = nomeelnoj@users.noreply.github.com
+  email = nomeelnoj@users.noreply.github.com
   signingkey = 676373943AA051AF
 [alias]
   lol   = log --oneline --abbrev-commit

@@ -9,6 +9,7 @@ export PATH="/opt/homebrew/opt/grep/libexec/gnubin:$PATH"
 export PATH="/opt/homebrew/opt/gnu-sed/libexec/gnubin:$PATH"
 export PATH="/opt/homebrew/opt/gnu-sed/libexec/gnubin:$PATH"
 export PATH="/opt/homebrew/bin:$PATH"
+export PATH="/Users/$USER/Library/Python/3.9/bin:$PATH"
 
 # Path to your oh-my-zsh installation.
 export ZSH="${HOME}/.oh-my-zsh"
@@ -486,6 +487,25 @@ export GODEBUG=asyncpreemptoff=1
 #  printf %q $@
 #}
 
+function gdrive_download() {
+  FILE_ID="${1}"
+  FILE_NAME="${1}"
+
+  wget \
+    --load-cookies /tmp/cookies.txt \
+    "https://drive.google.com/u/0/uc?export=download&confirm=$(
+      wget \
+        --quiet \
+        --save-cookies /tmp/cookies.txt \
+        --keep-session-cookies \
+        --no-check-certificate \
+        'https://drive.google.com/u/0/uc?export=download&id=${FILE_ID}' -O- |\
+        sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p'
+    )&id=${FILE_ID}" \
+      -O "${FILE_NAME}" \
+      && rm -rf /tmp/cookies.txt
+}
+
 function git_clone() {
   if [[ "${1}" = *"git@github.com"* ]]; then
     if ! [[ "${1}" = *".git"* ]]; then
@@ -525,33 +545,69 @@ function aws_decode() {
     jq -r '.DecodedMessage | fromjson'
 }
 
+#function expand_aws_attribute(){
+#while read LINE
+#do
+#  # set -x
+#  DIR_PATH="${HOME}/src/github.com/iann0036/iam-dataset"
+#  if [ -d "${DIR_PATH}" ]; then
+#    RAW="-r"
+#    if [[ "${LINE}" =~ ^\".*\"$ ]]; then
+#      CLEAN=$(echo ${LINE} | cut -d \" -f2)
+#      RAW=""
+#    fi
+#    if [[ "${CLEAN}" =~ ^\".*\",$ ]]; then
+#      CLEAN=$(echo ${CLEAN} | cut -d \" -f2)
+#      RAW=""
+#    fi
+#    CLEAN=^${CLEAN//\*/\.\*}$
+#    RESULTS=$(cat "${DIR_PATH}/map.json" |\
+#    jq \
+#      ${RAW} \
+#      --arg key "${CLEAN}" \
+#      '.sdk_method_iam_mappings[][] |
+#      select(.action | test($key)?) |
+#      .action' | sort | uniq
+#      # --arg key "${CLEAN}" \
+#      # '.sdk_method_iam_mappings[][] |
+#      #  select(.action | startswith($key)) |
+#      #  .action ' | sort | uniq
+#    )
+#    if [[ "${RAW}" == "" ]]; then
+#      echo "${RESULTS}" | sort | uniq | sed 's/$/,/'
+#    else
+#     echo "${RESULTS}" | sort | uniq
+#    fi
+# else
+#   git_clone git@github.com:iann0036/iam-dataset
+#  fi
+#done < "${1:-/dev/stdin}"
+#}
+#
+#
 function expand_aws_attribute(){
 while read LINE
 do
   # set -x
   DIR_PATH="${HOME}/src/github.com/iann0036/iam-dataset"
   if [ -d "${DIR_PATH}" ]; then
+    CLEAN=$( echo "${LINE}" | tr -d '*')
     RAW="-r"
-    if [[ "${LINE}" =~ ^\".*\"$ ]]; then
-      CLEAN=$(echo ${LINE} | cut -d \" -f2)
+    if [[ "${CLEAN}" =~ ^\".*\"$ ]]; then
+      CLEAN=$(echo ${CLEAN} | cut -d \" -f2)
       RAW=""
     fi
     if [[ "${CLEAN}" =~ ^\".*\",$ ]]; then
       CLEAN=$(echo ${CLEAN} | cut -d \" -f2)
       RAW=""
     fi
-    CLEAN=^${CLEAN//\*/\.\*}$
     RESULTS=$(cat "${DIR_PATH}/map.json" |\
     jq \
       ${RAW} \
       --arg key "${CLEAN}" \
       '.sdk_method_iam_mappings[][] |
-      select(.action | test($key)?) |
-      .action' | sort | uniq
-      # --arg key "${CLEAN}" \
-      # '.sdk_method_iam_mappings[][] |
-      #  select(.action | startswith($key)) |
-      #  .action ' | sort | uniq
+       select(.action | startswith($key)) |
+       .action ' | sort | uniq
     )
     if [[ "${RAW}" == "" ]]; then
       echo "${RESULTS}" | sort | uniq | sed 's/$/,/'
@@ -559,7 +615,7 @@ do
      echo "${RESULTS}" | sort | uniq
     fi
  else
-   git_clone git@github.com:iann0036/iam-dataset
+   echo "Please Clone 'https://github.com/iann0036/iam-dataset'"
   fi
 done < "${1:-/dev/stdin}"
 }
