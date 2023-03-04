@@ -545,46 +545,48 @@ function aws_decode() {
     jq -r '.DecodedMessage | fromjson'
 }
 
-#function expand_aws_attribute(){
-#while read LINE
-#do
-#  # set -x
-#  DIR_PATH="${HOME}/src/github.com/iann0036/iam-dataset"
-#  if [ -d "${DIR_PATH}" ]; then
-#    RAW="-r"
-#    if [[ "${LINE}" =~ ^\".*\"$ ]]; then
-#      CLEAN=$(echo ${LINE} | cut -d \" -f2)
-#      RAW=""
-#    fi
-#    if [[ "${CLEAN}" =~ ^\".*\",$ ]]; then
-#      CLEAN=$(echo ${CLEAN} | cut -d \" -f2)
-#      RAW=""
-#    fi
-#    CLEAN=^${CLEAN//\*/\.\*}$
-#    RESULTS=$(cat "${DIR_PATH}/map.json" |\
-#    jq \
-#      ${RAW} \
-#      --arg key "${CLEAN}" \
-#      '.sdk_method_iam_mappings[][] |
-#      select(.action | test($key)?) |
-#      .action' | sort | uniq
-#      # --arg key "${CLEAN}" \
-#      # '.sdk_method_iam_mappings[][] |
-#      #  select(.action | startswith($key)) |
-#      #  .action ' | sort | uniq
-#    )
-#    if [[ "${RAW}" == "" ]]; then
-#      echo "${RESULTS}" | sort | uniq | sed 's/$/,/'
-#    else
-#     echo "${RESULTS}" | sort | uniq
-#    fi
-# else
-#   git_clone git@github.com:iann0036/iam-dataset
-#  fi
-#done < "${1:-/dev/stdin}"
-#}
-#
-#
+function expand_aws_attribute_new(){
+while read LINE
+do
+ DIR_PATH="${HOME}/src/github.com/iann0036/iam-dataset"
+ if [ -d "${DIR_PATH}" ]; then
+   RAW="-r"
+   if [[ "${LINE}" =~ ^\".*\"$ ]]; then
+     CLEAN=$(echo ${LINE} | cut -d \" -f2)
+     RAW=""
+   fi
+   if [[ "${CLEAN}" =~ ^\".*\",$ ]]; then
+     CLEAN=$(echo ${CLEAN} | cut -d \" -f2)
+     RAW=""
+   fi
+   if [[ "${LINE}" =~ ^.*:\*$ ]]; then
+     CLEAN=${LINE}
+   else
+     CLEAN=^${CLEAN//\*/\.\*}$
+   fi
+   RESULTS=$(cat "${DIR_PATH}/map.json" |\
+   jq \
+     ${RAW} \
+     --arg key "${CLEAN}" \
+     '.sdk_method_iam_mappings[][] |
+     select(.action | test($key)?) |
+     .action' | sort | uniq
+     # --arg key "${CLEAN}" \
+     # '.sdk_method_iam_mappings[][] |
+     #  select(.action | startswith($key)) |
+     #  .action ' | sort | uniq
+   )
+   if [[ "${RAW}" == "" ]]; then
+     echo "${RESULTS}" | sort | uniq | sed 's/$/,/'
+   else
+    echo "${RESULTS}" | sort | uniq
+   fi
+else
+  git_clone git@github.com:iann0036/iam-dataset
+ fi
+done < "${1:-/dev/stdin}"
+}
+
 function expand_aws_attribute(){
 while read LINE
 do
