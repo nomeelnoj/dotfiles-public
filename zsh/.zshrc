@@ -3,13 +3,13 @@
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
 #
-export PATH="$HOME/go/bin:$PATH"
-export PATH="/usr/local/go/bin:$PATH"
-export PATH="/opt/homebrew/opt/grep/libexec/gnubin:$PATH"
-export PATH="/opt/homebrew/opt/gnu-sed/libexec/gnubin:$PATH"
-export PATH="/opt/homebrew/opt/gnu-sed/libexec/gnubin:$PATH"
-export PATH="/opt/homebrew/bin:$PATH"
-export PATH="/Users/$USER/Library/Python/3.9/bin:$PATH"
+# export PATH="$HOME/go/bin:$PATH"
+# export PATH="/usr/local/go/bin:$PATH"
+# export PATH="/opt/homebrew/opt/grep/libexec/gnubin:$PATH"
+# export PATH="/opt/homebrew/opt/gnu-sed/libexec/gnubin:$PATH"
+# export PATH="/opt/homebrew/opt/gnu-sed/libexec/gnubin:$PATH"
+# export PATH="/opt/homebrew/bin:$PATH"
+# export PATH="/Users/$USER/Library/Python/3.9/bin:$PATH"
 
 # Path to your oh-my-zsh installation.
 export ZSH="${HOME}/.oh-my-zsh"
@@ -119,7 +119,7 @@ prompt_context(){}
     # proxy                 # system-wide http/https/ftp proxy
     # battery               # internal battery
     # wifi                  # wifi speed
-    vault                   # Vault environment address 
+    vault                   # Vault environment address
     # example               # example user-defined segment (see prompt_example function below)
   )
 
@@ -382,7 +382,7 @@ source $ZSH/oh-my-zsh.sh
 
 # User configuration
 
-# export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$HOME/go/bin:$PATH"
+export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$HOME/go/bin:$PATH"
 
 # export MANPATH="/usr/local/man:$MANPATH"
 
@@ -537,6 +537,27 @@ function git_clone() {
   cd ${DIR}
 }
 
+# function git_clone() {
+#   if [[ ! "${1}" == *"http"* ]]; then
+#     echo "Currently only http is supported"
+#     exit 10
+#   fi
+
+#   REPO=$(basename "${1}")
+#   ORG=$(basename $(dirname "${1}"))
+#   TLD=$(basename $(dirname $(dirname "${1}")))
+#   DOMAIN="${TLD/.*/}"
+#   DIR="${HOME}/src/${DOMAIN}/${ORG}/${REPO}"
+#   if [ -d "${DIR}" ]; then
+#     echo "Repo ${1} already exists at '${DIR}'"
+#   else
+#     mkdir -p "${DIR}"
+#     git clone "${1}" "${DIR}"
+#   fi
+#   cd ${DIR}
+# }
+
+
 function aws_decode() {
   aws sts \
     decode-authorization-message \
@@ -546,44 +567,43 @@ function aws_decode() {
 }
 
 function expand_aws_attribute_new(){
-while read LINE
-do
- DIR_PATH="${HOME}/src/github.com/iann0036/iam-dataset"
- if [ -d "${DIR_PATH}" ]; then
-   RAW="-r"
-   if [[ "${LINE}" =~ ^\".*\"$ ]]; then
-     CLEAN=$(echo ${LINE} | cut -d \" -f2)
-     RAW=""
-   fi
-   if [[ "${CLEAN}" =~ ^\".*\",$ ]]; then
-     CLEAN=$(echo ${CLEAN} | cut -d \" -f2)
-     RAW=""
-   fi
-   if [[ "${LINE}" =~ ^.*:\*$ ]]; then
-     CLEAN=${LINE}
-   else
-     CLEAN=^${CLEAN//\*/\.\*}$
-   fi
-   RESULTS=$(cat "${DIR_PATH}/map.json" |\
-   jq \
-     ${RAW} \
-     --arg key "${CLEAN}" \
-     '.sdk_method_iam_mappings[][] |
-     select(.action | test($key)?) |
-     .action' | sort | uniq
-     # --arg key "${CLEAN}" \
-     # '.sdk_method_iam_mappings[][] |
-     #  select(.action | startswith($key)) |
-     #  .action ' | sort | uniq
-   )
-   if [[ "${RAW}" == "" ]]; then
-     echo "${RESULTS}" | sort | uniq | sed 's/$/,/'
-   else
-    echo "${RESULTS}" | sort | uniq
-   fi
-else
-  git_clone git@github.com:iann0036/iam-dataset
- fi
+while read LINE; do
+  DIR_PATH="${HOME}/src/github.com/iann0036/iam-dataset"
+  if [ -d "${DIR_PATH}" ]; then
+    RAW="-r"
+    if [[ "${LINE}" =~ ^\".*\"$ ]]; then
+      CLEAN=$(echo ${LINE} | cut -d \" -f2)
+      RAW=""
+    fi
+    if [[ "${CLEAN}" =~ ^\".*\",$ ]]; then
+      CLEAN=$(echo ${CLEAN} | cut -d \" -f2)
+      RAW=""
+    fi
+    if [[ "${LINE}" =~ ^.*:\*$ ]]; then
+      CLEAN=${LINE}
+    else
+      CLEAN=^${CLEAN//\*/\.\*}$
+      fi
+    RESULTS=$(cat "${DIR_PATH}/map.json" |\
+    jq \
+      ${RAW} \
+      --arg key "${CLEAN}" \
+      '.sdk_method_iam_mappings[][] |
+      select(.action | test($key)?) |
+      .action' | sort | uniq
+      # --arg key "${CLEAN}" \
+      # '.sdk_method_iam_mappings[][] |
+      #  select(.action | startswith($key)) |
+      #  .action ' | sort | uniq
+    )
+    if [[ "${RAW}" == "" ]]; then
+      echo "${RESULTS}" | sort | uniq | sed 's/$/,/'
+    else
+     echo "${RESULTS}" | sort | uniq
+    fi
+  else
+    git_clone git@github.com:iann0036/iam-dataset
+  fi
 done < "${1:-/dev/stdin}"
 }
 
@@ -621,26 +641,6 @@ do
   fi
 done < "${1:-/dev/stdin}"
 }
-
-# function git_clone() {
-#   if [[ ! "${1}" == *"http"* ]]; then
-#     echo "Currently only http is supported"
-#     exit 10
-#   fi
-
-#   REPO=$(basename "${1}")
-#   ORG=$(basename $(dirname "${1}"))
-#   TLD=$(basename $(dirname $(dirname "${1}")))
-#   DOMAIN="${TLD/.*/}"
-#   DIR="${HOME}/src/${DOMAIN}/${ORG}/${REPO}"
-#   if [ -d "${DIR}" ]; then
-#     echo "Repo ${1} already exists at '${DIR}'"
-#   else
-#     mkdir -p "${DIR}"
-#     git clone "${1}" "${DIR}"
-#   fi
-#   cd ${DIR}
-# }
 
 function awsp() {
   # Sets the AWS profile via environment variable
@@ -1363,7 +1363,7 @@ function dc_trace_cmd() {
 
 # Completion
 # source <(stern --completion=zsh)
-command -v flux >/dev/null && . <(flux completion zsh) && compdef _flux flux
+# command -v flux >/dev/null && . <(flux completion zsh) && compdef _flux flux
 
 # Make sure PATH is not duplicated
 typeset -U path

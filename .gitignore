@@ -1,1 +1,6 @@
-**/known_hosts
+known_hosts
+
+# Vim Plugins
+**/.vim/pack/plugins/start/vim-terraform*
+**/.vim/pack/plugins/start/surround*
+**/.vim/pack/plugins/start/vim-hcl*

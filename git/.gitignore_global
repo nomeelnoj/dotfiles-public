@@ -17,8 +17,3 @@ import.sh
 
 # Jenkins dsl
 jenkins.gdsl
-
-# Vim Plugins
-**/.vim/pack/plugins/start/vim-terraform*
-**/.vim/pack/plugins/start/surround*
-**/.vim/pack/plugins/start/vim-hcl*

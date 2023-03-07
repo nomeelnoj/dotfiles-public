@@ -329,7 +329,7 @@ configure_system() {
   # Show all file extensions
   defaults write NSGlobalDomain AppleShowAllExtensions -bool true
   # Desktop view settings: info at right, show details, stack by kind by date added
-  defaults write com.apple.finder DesktopViewSettings '{GroupBy=Kind;IconViewSettings={arrangeBy=dateAdded;backgroundColorBlue=1;backgroundColorGreen=1;backgroundColorRed=1;backgroundType=0;gridOffsetX=0;gridOffsetY=0;gridSpacing=82;iconSize=48;labelOnBottom=0;showIconPreview=1;showItemInfo=1;textSize=12;viewOptionsVersion=1;};}'
+  defaults write com.apple.finder DesktopViewSettings '{GroupBy=Kind;IconViewSettings={arrangeBy=dateAdded;backgroundColorBlue=1;backgroundColorGreen=1;backgroundColorRed=1;backgroundType=0;gridOffsetX=0;gridOffsetY=0;gridSpacing=82;iconSize=48;labelOnBottom=0;showIconPreview=1;showItemInfo=1;textSize=11;viewOptionsVersion=1;};}'
   # new window - use src
   defaults write com.apple.finder NewWindowTarget -string "PfLo"
   defaults write com.apple.finder NewWindowTargetPath -string "file://${HOME}/src"
@@ -489,9 +489,9 @@ configure_brave() {
 }
 
 configure_better_snap_tool() {
-  # echo "BetterSnapTool can only be downloaded from the MacAppStore"
-  # read -p "Download BetterSnapTool, then press enter when ready"
-  # defaults write "com.hegenberg.BetterSnapTool" "registeredHotkeys" '{0={keyCode=46;modifiers=6400;};1={keyCode="-1";modifiers=0;};10={keyCode="-1";modifiers=0;};100={keyCode="-1";modifiers=0;};102={keyCode="-1";modifiers=0;};104={keyCode="-1";modifiers=0;};105={keyCode="-1";modifiers=0;};106={keyCode="-1";modifiers=0;};11={keyCode="-1";modifiers=0;};12={keyCode="-1";modifiers=0;};13={keyCode="-1";modifiers=0;};14={keyCode="-1";modifiers=0;};15={keyCode=126;modifiers=8395008;};16={keyCode=125;modifiers=8395008;};17={keyCode="-1";modifiers=0;};18={keyCode="-1";modifiers=0;};19={keyCode="-1";modifiers=0;};2={keyCode=123;modifiers=8395008;};20={keyCode="-1";modifiers=0;};2001={keyCode="-1";modifiers=0;};2002={keyCode="-1";modifiers=0;};2003={keyCode="-1";modifiers=0;};2004={keyCode="-1";modifiers=0;};2005={keyCode="-1";modifiers=0;};2006={keyCode="-1";modifiers=0;};2007={keyCode="-1";modifiers=0;};2008={keyCode="-1";modifiers=0;};21={keyCode="-1";modifiers=0;};4={keyCode=124;modifiers=8395008;};5461={keyCode="-1";modifiers=0;};8={keyCode="-1";modifiers=0;};999={keyCode="-1";modifiers=0;};}'
+  echo "BetterSnapTool can only be downloaded from the MacAppStore"
+  read -p "Download BetterSnapTool, then press enter when ready"
+  defaults write "com.hegenberg.BetterSnapTool" "registeredHotkeys" '{0={keyCode=46;modifiers=6400;};1={keyCode="-1";modifiers=0;};10={keyCode="-1";modifiers=0;};100={keyCode="-1";modifiers=0;};102={keyCode="-1";modifiers=0;};104={keyCode="-1";modifiers=0;};105={keyCode="-1";modifiers=0;};106={keyCode="-1";modifiers=0;};11={keyCode="-1";modifiers=0;};12={keyCode="-1";modifiers=0;};13={keyCode="-1";modifiers=0;};14={keyCode="-1";modifiers=0;};15={keyCode=126;modifiers=8395008;};16={keyCode=125;modifiers=8395008;};17={keyCode="-1";modifiers=0;};18={keyCode="-1";modifiers=0;};19={keyCode="-1";modifiers=0;};2={keyCode=123;modifiers=8395008;};20={keyCode="-1";modifiers=0;};2001={keyCode="-1";modifiers=0;};2002={keyCode="-1";modifiers=0;};2003={keyCode="-1";modifiers=0;};2004={keyCode="-1";modifiers=0;};2005={keyCode="-1";modifiers=0;};2006={keyCode="-1";modifiers=0;};2007={keyCode="-1";modifiers=0;};2008={keyCode="-1";modifiers=0;};21={keyCode="-1";modifiers=0;};4={keyCode=124;modifiers=8395008;};5461={keyCode="-1";modifiers=0;};8={keyCode="-1";modifiers=0;};999={keyCode="-1";modifiers=0;};}'
   osascript -e 'tell application "System Events" to make login item at end with properties {name: "BetterSnapTool",path:"/Applications/BetterSnapTool.app", hidden:false}'
 }
 
@@ -515,6 +515,7 @@ configure_copyq() {
   defaults write "com.copyq.copyq" "Theme.sel_fg" 'bg'
   defaults write "com.copyq.copyq" "Theme.show_scrollbars" '0'
   defaults write "com.copyq.copyq" "Options.tray_items" -int 20
+  defaults write "com.copyq.copyq" "Theme.style_main_window" '1'
 
   osascript -e 'tell application "System Events" to make login item at end with properties {name: "CopyQ",path:"/Applications/CopyQ.app", hidden:false}'
   open -a "CopyQ"
@@ -539,7 +540,7 @@ link_files() {
   link "${DOTFILE_PATH}/vim/.vim" "${HOME}/.vim"
   link "${DOTFILE_PATH}/vim/.vimrc" "${HOME}/.vimrc"
   git clone https://github.com/hashivim/vim-terraform.git ~/.vim/pack/plugins/start/vim-terraform
-  git clone https://github.com/b4b4r07/vim-hcl ~/.vim/pack/plugins/start/vim-terraform
+  git clone https://github.com/b4b4r07/vim-hcl ~/.vim/pack/plugins/start/vim-hcl
   git clone https://tpope.io/vim/surround.git ~/.vim/pack/plugins/start/surround
 
   link "${DOTFILE_PATH}/git/git-dyff" '/usr/local/bin/git-dyff'
@@ -556,62 +557,62 @@ install_all() {
   # In case the company sets the sudo timeout to 0, set it to 5 so we can install homebrew without needing to enter
   # our password like 500 times
   # Set sudo timeout to 5 min
-  # echo "Defaults timestamp_timeout=5" > /private/etc/sudoers.d/$USER
+  sudo echo "Defaults timestamp_timeout=5" | sudo tee /private/etc/sudoers.d/$USER
   # # Set file permissions on /usr/local/bin
-  # sudo chown -R $USER:staff /usr/local/bin/
+  sudo chown -R $USER:admin /usr/local/bin/
 
   # # Install homebrew, then install the homebrew required packages.  I hate homebrew, so I avoid this at all costs
-  # /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
   # # Install wget, a prereq for everything else
-  # /opt/homebrew/bin/brew install wget
+  /opt/homebrew/bin/brew install wget
 
   # # Install JQ, its a prereq for the rest
-  # /opt/homebrew/bin/wget https://github.com/stedolan/jq/releases/download/jq-1.6/jq-osx-amd64 -O /usr/local/bin/jq
-  # chmod +x /usr/local/bin/jq
+  /opt/homebrew/bin/wget https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-macos-arm64 -O /usr/local/bin/jq
+  chmod +x /usr/local/bin/jq
 
   # # Install kubectl
-  # curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/darwin/arm64/kubectl"
-  # curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/darwin/arm64/kubectl.sha256"
-  # if ! echo $(shasum -a 256 kubectl) | grep $(cat kubectl.sha256); then
-  #     echo "Could not validate shasum for kubectl...not installing"
-  # else
-  #     chmod +x kubectl
-  #     mv kubectl /usr/local/bin
-  # fi
-  # rm kubectl*
+  curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/darwin/arm64/kubectl"
+  curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/darwin/arm64/kubectl.sha256"
+  if ! echo $(shasum -a 256 kubectl) | grep $(cat kubectl.sha256); then
+    echo "Could not validate shasum for kubectl...not installing"
+  else
+    chmod +x kubectl
+    mv kubectl /usr/local/bin
+  fi
+  rm kubectl*
 
   # Install Docker
   wget https://desktop.docker.com/mac/main/arm64/Docker.dmg -O docker.dmg
   install_dmg docker.dmg
   rm docker.dmg
 
-  # install_brave
-  # install_brew_cask
-  # install_brew_formulae
-  # configure_sublime
-  # install_shell_environment
-  # gh_install_releases "${DOTFILE_PATH}/installers/github/releases.json"
-  # install_go
-  # install_awscli
+  install_brave
+  install_brew_cask
+  install_brew_formulae
+  configure_sublime
+  install_shell_environment
+  gh_install_releases "${DOTFILE_PATH}/installers/github/releases.json"
+  install_go
+  install_awscli
   install_text_expander
-  # configure_brave
-  # configure_better_snap_tool
-  # configure_sublime
-  # configure_copyq
-  # configure_system
+  configure_brave
+  configure_better_snap_tool
+  configure_sublime
+  configure_copyq
+  configure_system
 
   # # Install plistwatch to help with creating these scripts
-  # /usr/local/go/bin/go install github.com/catilac/plistwatch@latest
+  /usr/local/go/bin/go install github.com/catilac/plistwatch@latest
 
   # # Install go-jira
-  # /usr/local/go/bin/go install github.com/go-jira/jira/cmd/jira@latest
+  /usr/local/go/bin/go install github.com/go-jira/jira/cmd/jira@latest
 
   # # Install hashicorp tools
-  # ${DOTFILE_PATH}/installers/hashicorp/hashicorp.sh
+  ${DOTFILE_PATH}/installers/hashicorp/hashicorp.sh
 
   # Set up our symlinks
-  # link_files
+  link_files
 }
 
 get_input_args $@
@@ -629,7 +630,7 @@ echo "There are still a few things to do to get your environment "
 echo "setup properly:"
 echo ""
 echo "- Set slack sidebar theme:"
-echo "#303E4D,#152A2D,#61AA9F,#FFFFFF,#4A5664,#FFFFFF,#AFCE76,#78AF8F,#31556E,#FFFFFF"
+echo "#303E4D,#31556E,#61aa9f,#FFFFFF,#4A5664,#FFFFFF,#afce76,#78AF8F,#31556E,#FFFFFF"
 echo ""
 echo "- Set brave search engine default to Google"
 echo ""
