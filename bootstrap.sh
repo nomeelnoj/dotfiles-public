@@ -3,10 +3,11 @@
 export DOTFILE_PATH="${HOME}/src/github.com/nomeelnoj/dotfiles"
 
 usage() {
-  echo "Usage: bootstrap.sh [[-g COMPANY_GIT_ORG] [-e EMAIL] | [-h]]"
+  echo "Usage: bootstrap.sh [[-g COMPANY_GIT_DOMAIN] [-e EMAIL] | [-h]]"
   echo ""
   echo "Options:"
-  echo "-g / --company-git-org [COMPANY_GIT_ORG]: The git org of the company, e.g. github.com/mycompany"
+  echo "-g / --company-git-domain [COMPANY_GIT_DOMAIN]: The git domain of the company, e.g. github.com"
+  echo "-o / --company-git-org [GIT_ORG]: The company git org (after the github.com), e.g. company-internal"
   echo "-e / --email [EMAIL]: Your company email address"
   echo "-d / --debug: Enable debug output"
   echo "-h / --help: Print this usage statement"
@@ -21,8 +22,13 @@ get_input_args() {
   while [ $# -gt 0 ]; do
     key="$1"
     case $key in
-    -g | --company-git-org)
-      COMPANY_GIT_ORG="$2"
+    -g | --company-git-domain)
+      COMPANY_GIT_DOMAIN="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    -o | --company-git-org)
+      GIT_ORG="$2"
       shift # past argument
       shift # past value
       ;;
@@ -50,8 +56,9 @@ get_input_args() {
 }
 
 verify_input_args() {
-  : "${COMPANY_GIT_ORG:?COMPANY_GIT_ORG must be set as an env var or with -g when running to ensure proper git config}"
-  : "${COMPANY_EMAIL:?COMPANY_EMAIL must be set as an env var or with -g when running to ensure proper git config}"
+  : "${COMPANY_GIT_DOMAIN:?COMPANY_GIT_DOMAIN (e.g. github.com) must be set as an env var or with -g when running to ensure proper git config}"
+  : "${GIT_ORG:?GIT_ORG (e.g. company-internal) must be set as an env var or with -o when running to ensure proper git config}"
+  : "${COMPANY_EMAIL:?COMPANY_EMAIL must be set as an env var or with -e when running to ensure proper git config}"
 }
 
 confirm() {
@@ -94,108 +101,8 @@ link() {
   ln -s "${FROM}" "${TO}"
 }
 
-requirements_check() {
-  INPUT_ARGS="${1}"
-  OLDIFS="${IFS}"
-  IFS=","
-  for ARG in ${INPUT_ARGS}; do
-    if ! command -v $ARG &>/dev/null; then
-      echo "You do not have $ARG installed.  Script cannot proceed.  Exiting"
-      exit 1
-    fi
-  done
-  IFS="${OLDIFS}"
-}
-
-install_dmg() {
-  local DMG="${1}"
-  ATTACHMENT_INFO=$(hdiutil attach "${DMG}" -nobrowse | grep '/Volumes')
-  DEVICE_NAME=$(echo "${ATTACHMENT_INFO}" | awk -F '\t' '{print $1}')
-  ATTACHMENT_PATH=$(echo "${ATTACHMENT_INFO}" | awk -F '\t' '{print $NF}')
-  APPLICATION_NAME=$(ls "${ATTACHMENT_PATH}" | grep '.app$')
-  cp -R "${ATTACHMENT_PATH}/${APPLICATION_NAME}" /Applications
-  hdiutil detach $(echo "${DEVICE_NAME}" | awk '{print $1}')
-}
-
-install_pkg() {
-  local PACKAGE="${1}"
-  sudo installer -pkg "${PACKAGE}" -target /
-}
-
-install_package() {
-  local PACKAGE="${1}"
-  local TARGET_DIR=$(mktemp -d)
-  local FILE_TYPE=$(file -bI "${PACKAGE}" | cut -d ';' -f1)
-  case $FILE_TYPE in
-  application/zip)
-    unzip -q "${PACKAGE}" -d "${TARGET_DIR}"
-    APP=$(ls "${TARGET_DIR}" | grep -E '(.app|.dmg)$')
-    if [ ! -z "${APP}" ]; then
-      install_package "${TARGET_DIR}/${APP}"
-    fi
-    ;;
-  inode/directory)
-    if ls /Applications | grep "$(echo "${PACKAGE}" | awk -F '/' '{print $NF}')"; then
-      echo "Package ${PACKAGE} is already installed in /Applications"
-      return 1
-    elif echo "${PACKAGE}" | grep -q '.app'; then
-      mv "${PACKAGE}" /Applications
-    fi
-    ;;
-  application/x-mach-binary) # If there is no extension, we assume it is already a binary
-    chmod +x "${TARGET_DIR}/${DOWNLOADED_RELEASE}"
-    mv "${TARGET_DIR}/${DOWNLOADED_RELEASE}" "/usr/local/bin/${TOOL}"
-    ;;
-  application/zlib | application/octet-stream)
-    install_dmg "${PACKAGE}"
-    ;;
-  application/x-xar)
-    install_pkg "${PACKAGE}"
-    ;;
-  application/gzip)
-    tar -zxvf "${PACKAGE}"
-    ;;
-  *)
-    echo "Could not process ${TOOL}".
-    echo "You might have to download it and configure it manually."
-    ;;
-  esac
-  rm -r "${TARGET_DIR}"
-}
-
-install_brew_cask() {
-  # I hate homebrew, so we use it as little as possible
-  local TARGET_DIR=$(mktemp -d)
-
-  requirements_check "jq,wget"
-
-  for PACKAGE in $(cat "${DOTFILE_PATH}/installers/brew/casks.txt"); do
-    DOWNLOAD_INFO=$(
-      curl -s "https://formulae.brew.sh/api/cask/${PACKAGE}.json" |
-        jq -r '[.url, .sha256, (.artifacts[].app | select(. != null)[])] | @tsv'
-    )
-    URL=$(echo "${DOWNLOAD_INFO}" | awk -F '\t' '{print $1}')
-    SHASUM=$(echo "${DOWNLOAD_INFO}" | awk -F '\t' '{print $2}')
-    FILE_NAME=$(echo "${DOWNLOAD_INFO}" | awk -F '\t' '{print $NF}')
-    if [ -d "/Applications/${FILE_NAME}" ]; then
-      echo "${FILE_NAME} is already installed...skipping"
-      continue
-    fi
-    # Download the package and validate the shasum
-    wget "${URL}" -O "${TARGET_DIR}/${PACKAGE}"
-    if [ "${SHASUM}" != "no_check" ] && ! shasum -a 256 "${TARGET_DIR}/${PACKAGE}" | grep -q "${SHASUM}"; then
-      echo "Shasum for ${TARGET_DIR}/${PACKAGE} could not be validated.  You will have to install it manually."
-      return 1
-    fi
-    install_package "${TARGET_DIR}/${PACKAGE}"
-  done
-  rm -r "${TARGET_DIR}"
-}
-
-install_brew_formulae() {
-  pushd "${DOTFILE_PATH}/installers/brew"
-  cat formulas.txt | xargs -I {} bash -c "brew list {} || brew install {}"
-  popd
+find_replace() {
+  perl -p -i -e "s|$1|$2|g" $3
 }
 
 install_awscli() {
@@ -299,8 +206,23 @@ configure_system() {
   # increase audio bitrate (better sound quality)
   defaults write com.apple.BluetoothAudioAgent "Apple Bitpool Min (editable)" -int 40
   # zoom.us
+  # https://support.zoom.us/hc/en-us/articles/115001799006-Mass-deploying-with-preconfigured-settings-for-macOS
   # Disable Dual Screen
-  defaults write /Library/Preferences/us.zoom.config.plist ZDualMonitorOn -bool false
+  defaults write /Library/Preferences/us.zoom.config.plist zDualMonitorOn -int 0
+  # Set Global Mute Key Command + Shift + A
+  defaults write "us.zoom.xos.Hotkey" "[gHK@state]-HotkeyOnOffAudio" -bool true
+  # Set Global Video on/off key Command + Shift + X
+  defaults write "us.zoom.xos.Hotkey" "[gHK@state]-HotkeyOnOffVideo" -bool true
+  defaults write "us.zoom.xos.HotKey" "[HK@combo]-HotkeyOnOffVideo" -array '<dict><key>hot key code</key><integer>7</integer><key>hot key modifier</key><integer>1179648</integer></dict>'
+  # These are actually strings, not bools
+  defaults write "ZoomChat" "ZoomShowIconInMenuBar" 'false'
+  defaults write "ZoomChat" "ZoomEnterMaxWndWhenViewShare" 'false'
+  defaults write "ZoomChat" "ZoomShouldShowSharingWithSplitView" 'true'
+  defaults write "ZoomChat" "ZMEnableShowUserName" 'true'
+  defaults write "ZoomChat" "ZoomStereo" 'true'
+  defaults write "ZoomChat" "ZoomFitDock" 'false'
+  defaults write "ZoomChat" "ZoomFitXPos" '3874'
+  defaults write "ZoomChat" "ZoomFitYPos" '1412'
 
   ##############
   ## KEYBOARD ##
@@ -482,6 +404,11 @@ configure_brave() {
   LOCAL_STATE_FILE="${BRAVE_PATH}/Local State"
   cat "${PREFERENCE_FILE}" | jq '.brave.location_bar_is_wide = true' | sponge "${PREFERENCE_FILE}"
   cat "${PREFERENCE_FILE}" | jq '.bookmark_bar.show_on_all_tabs = true' | sponge "${PREFERENCE_FILE}"
+  cat "${PREFERENCE_FILE}" | jq '.brave.new_tab_page.show_rewards = false' | sponge "${PREFERENCE_FILE}"
+  cat "${PREFERENCE_FILE}" | jq '.download.prompt_for_download = true' | sponge "${PREFERENCE_FILE}"
+  cat "${PREFERENCE_FILE}" | jq '.brave.wallet.show_wallet_icon_on_toolbar = false' | sponge "${PREFERENCE_FILE}"
+  cat "${PREFERENCE_FILE}" | jq '.brave.enable_window_closing_confirm = false' | sponge "${PREFERENCE_FILE}"
+  cat "${LOCAL_STATE_FILE}" | jq '.browser.confirm_to_quit = false' | sponge "${LOCAL_STATE_FILE}"
   cat "${LOCAL_STATE_FILE}" | jq '.browser.enabled_labs_experiments = ["password-import@1"]' | sponge "${LOCAL_STATE_FILE}"
   open -a "Brave Browser" --args --make-default-browser
   echo "There are some settings that cannot be easily set from the CLI"
@@ -535,6 +462,24 @@ configure_istat_menus() {
   defaults write "com.bjango.istatmenus6.extras" "CPU_MenubarMode" '({key=100;uuid="F7272301-4A87-4DD8-A16C-4BFEA34172BF";},{key=0;uuid="731B78D3-BF85-4810-BD10-ADD6C529C920";},{key=2;uuid="09AB52E6-9044-4660-985E-34564DCD695F";},)'
 }
 
+configure_flux() {
+  defaults write org.herf.Flux SUHasLaunchedBefore -bool true
+  defaults write org.herf.Flux dayColorTemp -int 4600
+  defaults write org.herf.Flux lateColorTemp -float 2900
+  echo "f.Lux needs your location."
+  read -p "Enter your latitude (e.g. 10.2): " LAT
+  read -p "Enter your longitued (e.g. 100.4): " LONG
+  if [ -z "$LAT" ] || [ -z "$LONG" ]; then
+    echo "No location entered. Please configure manually."
+    return 0
+  fi
+  defaults write org.herf.Flux location "${LAT}00000,${LONG}00000"
+  defaults write org.herf.Flux locationTextField "${LAT},${LONG}"
+  defaults write org.herf.Flux locationType "L"
+  defaults write org.herf.Flux wakeNotifyDisable -int 1
+  defaults write org.herf.Flux wakeTime -int 510
+}
+
 link_files() {
 
   link "${DOTFILE_PATH}/vim/.vim" "${HOME}/.vim"
@@ -549,6 +494,11 @@ link_files() {
   link "${DOTFILE_PATH}/git/.gitconfig" "${HOME}/.gitconfig"
   cp -n "${DOTFILE_PATH}/git/.gitcompany.tpl" "${HOME}/.gitcompany"
   link "${DOTFILE_PATH}/git/gh_install_release" '/usr/local/bin/gh_install_release'
+  # Custom brew cask installer
+  link "${DOTFILE_PATH}/installers/brew/brew_install_cask" '/usr/local/bin/brew_install_cask'
+  find_replace COMPANY_EMAIL "${COMPANY_EMAIL}" "${HOME}/.gitcompany"
+  find_replace COMPANY_GIT_DOMAIN "${COMPANY_GIT_DOMAIN}" "${HOME}/.gitconfig"
+  find_replace '(includeIf "gitdir:~/src/)[^"]+' "\1${COMPANT_GIT_DOMAIN}/${GIT_ORG}"
   /opt/homebrew/opt/gnu-sed/libexec/gnubin/sed -i "s|COMPANY_EMAIL|${COMPANY_EMAIL}|g" "${HOME}/.gitcompany"
   /opt/homebrew/opt/gnu-sed/libexec/gnubin/sed -i "s|COMPANY_GIT_ORG|${COMPANY_GIT_ORG}|g" "${HOME}/.gitconfig"
 }
@@ -588,7 +538,7 @@ install_all() {
   rm docker.dmg
 
   install_brave
-  install_brew_cask
+  install_brew_cask $(cat "${DOTFILE_PATH}/installers/brew/casks.txt")
   install_brew_formulae
   configure_sublime
   install_shell_environment
@@ -613,13 +563,23 @@ install_all() {
 
   # Set up our symlinks
   link_files
+
+  # Now that our files are set and linked, we can clone and set private dotfiles
+  clone_private_dotfiles_and_run
+}
+
+clone_private_dotfiles_and_run() {
+  git clone git@github.com:nomeelnoj/dotfiles-private.git "${HOME}/src/github.com/nomeelnoj/dotfiles-private"
+  bash "${HOME}/src/github.com/nomeelnoj/dotfiles-private/bootstrap.sh"
 }
 
 get_input_args $@
 verify_input_args
 # Ask for the administrator password upfront
-# sudo -vB
+sudo -vB
+source "${DOTFILE_PATH}/installers/generic/install_helpers.sh"
 source "${DOTFILE_PATH}/installers/github/gh_install_releases.sh"
+source "${DOTFILE_PATH}/installers/brew/brew_installer.sh"
 
 install_all
 

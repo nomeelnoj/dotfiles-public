@@ -1,19 +1,8 @@
 #!/bin/bash
 
-set -x
+export DOTFILE_PATH="${HOME}/src/github.com/nomeelnoj/dotfiles"
 
-requirements_check() {
-  INPUT_ARGS="${1}"
-  OLDIFS="${IFS}"
-  IFS=","
-  for ARG in ${INPUT_ARGS}; do
-    if ! command -v $ARG &>/dev/null; then
-      echo "You do not have $ARG installed.  Script cannot proceed.  Exiting"
-      exit 1
-    fi
-  done
-  IFS="${OLDIFS}"
-}
+source "${DOTFILE_PATH}/installers/generic/install_helpers.sh"
 
 extract_tar_binary() {
   local TARGET_DIR="${1}"
