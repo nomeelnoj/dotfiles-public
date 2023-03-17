@@ -1,0 +1,7 @@
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk1.8.0_171.jdk/Contents/Home
+export GROOVY_HOME=/usr/local/bin/groovy
+export GPG_TTY=$(tty)
+export GOBIN="/Users/jleemon/go/bin"
+export TF_PLUGIN_CACHE_DIR=~/.terraform
+export ECR_IMAGE_REPO="${ECR_REGISTRY}.dkr.ecr.us-east-1.amazonaws.com"
+export GODEBUG=asyncpreemptoff=1

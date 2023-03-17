@@ -1,0 +1,177 @@
+function assume_role() {
+  if [ -z "$3" ]; then
+    echo "No role session name provided in \$3, using 'default'"
+  fi
+  ROLE_SESSION_NAME=${3:-default}
+  ASSUME_ROLE=$(aws sts assume-role --role-arn $1 --role-session-name ${ROLE_SESSION_NAME} --profile $2)
+  export AWS_ACCESS_KEY_ID=$(echo $ASSUME_ROLE | jq -r '.Credentials.AccessKeyId')
+  export AWS_SECRET_ACCESS_KEY=$(echo $ASSUME_ROLE | jq -r '.Credentials.SecretAccessKey')
+  export AWS_SESSION_TOKEN=$(echo $ASSUME_ROLE | jq -r '.Credentials.SessionToken')
+}
+
+function aws_decode() {
+  aws sts \
+    decode-authorization-message \
+    --encoded-message \
+    $@ |\
+    jq -r '.DecodedMessage | fromjson'
+}
+
+function awsp() {
+  # Sets the AWS profile via environment variable
+  if [ -z "$1" ]; then
+    echo "FATAL: Enter a profile"
+    return 1
+  else
+    export AWS_PROFILE=$1
+  fi
+}
+
+function clear_aws() {
+  unset AWS_ACCESS_KEY_ID
+  unset AWS_SECRET_ACCESS_KEY
+  unset AWS_SESSION_TOKEN
+}
+
+function ecr() {
+  if [ -z "$1" ]; then
+    $(aws ecr get-login --no-include-email --registry-ids ${ECR_REGISTRY} --region us-east-1)
+  else
+    $(aws ecr get-login --no-include-email --registry-ids ${ECR_REGISTRY} --region us-east-1 --profile $1)
+  fi
+}
+
+function expand_aws_attribute(){
+while read LINE; do
+  DIR_PATH="${HOME}/src/github.com/iann0036/iam-dataset"
+  if [ -d "${DIR_PATH}" ]; then
+    RAW="-r"
+    PREFIX="${LINE%:*}"
+    PREFIX="${PREFIX#\"}"
+    SUFFIX="${LINE#*:}"
+    SUFFIX="${SUFFIX%\"}"
+    SUFFIX_REGEX=^${SUFFIX//\*/\.\*}$
+    if [[ "${LINE}" =~ ^\".*\"$ ]] || [[ "${LINE}" =~ ^\".*\",$ ]]; then
+      RAW=""
+    fi
+    RESULTS=$(cat "${DIR_PATH}/iam_definition.json" |\
+      jq \
+        ${RAW} \
+        --arg prefix "${PREFIX}" \
+        --arg suffix "${SUFFIX_REGEX}" \
+        '.[]
+        | select(.prefix == $prefix)
+        | .privileges[].privilege
+        | select( . | test($suffix)?)
+        | ( $prefix + ":" + . )
+        '
+    )
+    if [[ "${RAW}" == '' ]]; then
+      echo "${RESULTS}" | sed 's/$/,/'
+    else
+     echo "${RESULTS}"
+    fi
+  else
+    git_clone git@github.com:iann0036/iam-dataset
+  fi
+done < "${1:-/dev/stdin}"
+}
+
+function expand_aws_attribute_old(){
+while read LINE
+do
+  # set -x
+  DIR_PATH="${HOME}/src/github.com/iann0036/iam-dataset"
+  if [ -d "${DIR_PATH}" ]; then
+    CLEAN=$( echo "${LINE}" | tr -d '*')
+    RAW="-r"
+    if [[ "${CLEAN}" =~ ^\".*\"$ ]]; then
+      CLEAN=$(echo ${CLEAN} | cut -d \" -f2)
+      RAW=""
+    fi
+    if [[ "${CLEAN}" =~ ^\".*\",$ ]]; then
+      CLEAN=$(echo ${CLEAN} | cut -d \" -f2)
+      RAW=""
+    fi
+    RESULTS=$(cat "${DIR_PATH}/map.json" |\
+    jq \
+      ${RAW} \
+      --arg key "${CLEAN}" \
+      '.sdk_method_iam_mappings[][] |
+       select(.action | startswith($key)) |
+       .action ' | sort | uniq
+    )
+    if [[ "${RAW}" == "" ]]; then
+      echo "${RESULTS}" | sort | uniq | sed 's/$/,/'
+    else
+     echo "${RESULTS}" | sort | uniq
+    fi
+ else
+   echo "Please Clone 'https://github.com/iann0036/iam-dataset'"
+  fi
+done < "${1:-/dev/stdin}"
+}
+
+alias aws="aws --no-cli-pager"
+
+validate_aws_credentials() {
+  if [[ -z ${1+x} ]]; then PROFILES=${AWS_PROFILE}; else PROFILES=${1}; fi
+  echo "profiles list: $PROFILES"
+  for PROFILE in ${PROFILES//,/ }
+  do
+    AWS_PROFILE=${PROFILE}
+    echo "AWS Profile: ${AWS_PROFILE}"
+    aws --no-cli-pager sts get-caller-identity --profile $AWS_PROFILE
+  done
+}
+
+okta_auth() {
+  DUO_DEVICE="phone1"
+  if [[ $(ioreg -p IOUSB -l -w 0 | grep '"USB Vendor Name" = "Yubico"') ]]; then
+    DUO_DEVICE='u2f'
+  fi
+  if [[ -z ${1+x} ]]; then PROFILES=${AWS_PROFILE}; else PROFILES=${1}; fi
+  for PROFILE in $(echo ${PROFILES//,/ });
+  do
+    echo "profile is: ${PROFILE}"
+    aws-okta \
+      --debug \
+      --mfa-provider DUO \
+      --mfa-duo-device ${DUO_DEVICE} \
+      --mfa-factor-type web \
+      --assume-role-ttl 12h \
+      --session-ttl 12h \
+      write-to-credentials \
+      ${PROFILE} \
+      ~/.aws/credentials
+    EXPIRATION=$(
+      aws-okta \
+        cred-process \
+        ${PROFILE} | \
+      jq -r .Expiration)
+    echo "Expiration: ${EXPIRATION}"
+  done
+}
+
+okta_auth_manual() {
+    if [ -z "$1" ]; then
+        echo "Must provide a profile name!"
+        return 1
+    fi
+    aws-okta --debug --mfa-provider DUO --mfa-duo-device u2f --mfa-factor-type web write-to-credentials $1 ~/.aws/credentials
+}
+
+get_me_creds() {
+  aws sso get-role-credentials \
+    --account-id $(aws configure get sso_account_id --profile ${AWS_PROFILE}) \
+    --role-name $(aws configure get sso_role_name --profile ${AWS_PROFILE}) \
+    --access-token $(find ~/.aws/sso/cache -type f ! -name "botocore*.json" | xargs jq -r .accessToken) \
+    --region $(aws configure get region --profile ${AWS_PROFILE}) |\
+  jq -r '.roleCredentials |
+      {
+        "AWS_ACCESS_KEY_ID": .accessKeyId,
+        "AWS_SECRET_ACCESS_KEY": .secretAccessKey,
+        "AWS_SESSION_TOKEN": .sessionToken,
+        "AWS_CREDENTIALS_EXPIRATION": (.expiration / 1000 | todate)
+      } | keys[] as $k | "export \($k)=\(.[$k])"'
+}

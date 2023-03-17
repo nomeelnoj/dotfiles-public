@@ -486,9 +486,9 @@ export GODEBUG=asyncpreemptoff=1
 ###############
 ## Functions ##
 ###############
-#function whitespace() {
-#  printf %q $@
-#}
+function whitespace() {
+ printf %q $@
+}
 
 function gdrive_download() {
   FILE_ID="${1}"
@@ -567,95 +567,6 @@ function graph_png() {
   fi
 
   /usr/local/bin/dot -Tpng ${1} > ${1}.png && open ${1}.png
-}
-
-function aws_decode() {
-  aws sts \
-    decode-authorization-message \
-    --encoded-message \
-    $@ |\
-    jq -r '.DecodedMessage | fromjson'
-}
-
-function expand_aws_attribute(){
-while read LINE; do
-  DIR_PATH="${HOME}/src/github.com/iann0036/iam-dataset"
-  if [ -d "${DIR_PATH}" ]; then
-    RAW="-r"
-    PREFIX="${LINE%:*}"
-    PREFIX="${PREFIX#\"}"
-    SUFFIX="${LINE#*:}"
-    SUFFIX="${SUFFIX%\"}"
-    SUFFIX_REGEX=^${SUFFIX//\*/\.\*}$
-    if [[ "${LINE}" =~ ^\".*\"$ ]] || [[ "${LINE}" =~ ^\".*\",$ ]]; then
-      RAW=""
-    fi
-    RESULTS=$(cat "${DIR_PATH}/iam_definition.json" |\
-      jq \
-        ${RAW} \
-        --arg prefix "${PREFIX}" \
-        --arg suffix "${SUFFIX_REGEX}" \
-        '.[]
-        | select(.prefix == $prefix)
-        | .privileges[].privilege
-        | select( . | test($suffix)?)
-        | ( $prefix + ":" + . )
-        '
-    )
-    if [[ "${RAW}" == '' ]]; then
-      echo "${RESULTS}" | sed 's/$/,/'
-    else
-     echo "${RESULTS}"
-    fi
-  else
-    git_clone git@github.com:iann0036/iam-dataset
-  fi
-done < "${1:-/dev/stdin}"
-}
-
-function expand_aws_attribute_old(){
-while read LINE
-do
-  # set -x
-  DIR_PATH="${HOME}/src/github.com/iann0036/iam-dataset"
-  if [ -d "${DIR_PATH}" ]; then
-    CLEAN=$( echo "${LINE}" | tr -d '*')
-    RAW="-r"
-    if [[ "${CLEAN}" =~ ^\".*\"$ ]]; then
-      CLEAN=$(echo ${CLEAN} | cut -d \" -f2)
-      RAW=""
-    fi
-    if [[ "${CLEAN}" =~ ^\".*\",$ ]]; then
-      CLEAN=$(echo ${CLEAN} | cut -d \" -f2)
-      RAW=""
-    fi
-    RESULTS=$(cat "${DIR_PATH}/map.json" |\
-    jq \
-      ${RAW} \
-      --arg key "${CLEAN}" \
-      '.sdk_method_iam_mappings[][] |
-       select(.action | startswith($key)) |
-       .action ' | sort | uniq
-    )
-    if [[ "${RAW}" == "" ]]; then
-      echo "${RESULTS}" | sort | uniq | sed 's/$/,/'
-    else
-     echo "${RESULTS}" | sort | uniq
-    fi
- else
-   echo "Please Clone 'https://github.com/iann0036/iam-dataset'"
-  fi
-done < "${1:-/dev/stdin}"
-}
-
-function awsp() {
-  # Sets the AWS profile via environment variable
-  if [ -z "$1" ]; then
-    echo "FATAL: Enter a profile"
-    return 1
-  else
-    export AWS_PROFILE=$1
-  fi
 }
 
 function kcadmin() {
@@ -758,17 +669,6 @@ function find_replace_setup_json() {
     $(find . -type f -not -path '*/\.*' -name 'setup.tf.json')
 }
 
-validate_aws_credentials() {
-  if [[ -z ${1+x} ]]; then PROFILES=${AWS_PROFILE}; else PROFILES=${1}; fi
-  echo "profiles list: $PROFILES"
-  for PROFILE in ${PROFILES//,/ }
-  do
-    AWS_PROFILE=${PROFILE}
-    echo "AWS Profile: ${AWS_PROFILE}"
-    PAGER="cat" aws2 sts get-caller-identity --profile $AWS_PROFILE
-  done
-}
-
 function restart_gp() {
   launchctl unload /Library/LaunchAgents/com.paloaltonetworks.gp.pangp*
   launchctl load /Library/LaunchAgents/com.paloaltonetworks.gp.pangp*
@@ -799,139 +699,12 @@ function move_certs() {
   eval $COMMAND
 }
 
-function s3_import() {
- if [ -z "$1" ]; then
-   echo "Must enter a bucket name!"
-   return 1
- fi
- terraform import module.s3.aws_s3_bucket.s3_bucket "${1}"
- terraform import module.s3.aws_s3_bucket_policy.s3_bucket_policy "${1}"
- terraform import 'module.s3.aws_s3_bucket_public_access_block.s3_public_access_block[0]' "${1}"
-}
-
-okta_auth() {
-  DUO_DEVICE="phone1"
-  if [[ $(ioreg -p IOUSB -l -w 0 | grep '"USB Vendor Name" = "Yubico"') ]]; then
-    DUO_DEVICE='u2f'
-  fi
-  if [[ -z ${1+x} ]]; then PROFILES=${AWS_PROFILE}; else PROFILES=${1}; fi
-  for PROFILE in $(echo ${PROFILES//,/ });
-  do
-    echo "profile is: ${PROFILE}"
-    aws-okta \
-      --debug \
-      --mfa-provider DUO \
-      --mfa-duo-device ${DUO_DEVICE} \
-      --mfa-factor-type web \
-      --assume-role-ttl 12h \
-      --session-ttl 12h \
-      write-to-credentials \
-      ${PROFILE} \
-      ~/.aws/credentials
-    EXPIRATION=$(
-      aws-okta \
-        cred-process \
-        ${PROFILE} | \
-      jq -r .Expiration)
-    echo "Expiration: ${EXPIRATION}"
-  done
-}
-
 # Auto complete
 source <(stern --completion=zsh)
-
-okta_auth_manual() {
-    if [ -z "$1" ]; then
-        echo "Must provide a profile name!"
-        return 1
-    fi
-    aws-okta --debug --mfa-provider DUO --mfa-duo-device u2f --mfa-factor-type web write-to-credentials $1 ~/.aws/credentials
-}
-
-ldap_membership() {
-  ldapsearch \
-    -o ldif-wrap=no \
-    -H ldaps://${DOMAIN_CONTROLLER}:636 \
-    -D "${DOMAIN_DN}" \
-    -w "${DOMAIN_PASSWORD}" \
-    -b "${DOMAIN_ROOT}" "(&(cn=*)(sAMAccountName=$1))" 'memberOf' | \
-  grep 'memberOf' | \
-  awk '{print $2}'
-}
-
-function ldap_group() {
-  ldapsearch \
-    -o ldif-wrap=no \
-    -H ldaps://${DOMAIN_CONTROLLER}:636 \
-    -D "${DOMAIN_DN}" \
-    -w "${DOMAIN_PASSWORD}" \
-    -b "${DOMAIN_ROOT}" "(&(cn=$1))" 'member' | \
-  grep -v 'requesting:' | \
-  grep 'member' | \
-  cut -d " " -f2-
-}
-
-ldap_profile() {
-  ldapsearch \
-    -o ldif-wrap=no \
-    -H ldaps://${DOMAIN_CONTROLLER}:636 \
-    -D "${DOMAIN_DN}" \
-    -w "${DOMAIN_PASSWORD}" \
-    -b "${DOMAIN_ROOT}" "(&(cn=*)(sAMAccountName=$1))" | \
-  sed -n '/# requesting:/,/# search reference/p' |\
-  grep -v '# search'
-}
-
-ldap_id() {
-  ldapsearch \
-    -o ldif-wrap=no \
-    -H ldaps://${DOMAIN_CONTROLLER}:636 \
-    -D "${DOMAIN_DN}" \
-    -w "${DOMAIN_PASSWORD}" \
-    -b "${DOMAIN_ROOT}" "(&(cn=*)(sAMAccountName=$1))" 'mail' 'sAMAccountName' 'name' | \
-  grep -E 'mail|sAMAccountName|name'
-}
-
-ldap_email() {
-  ldapsearch \
-    -o ldif-wrap=no \
-    -H ldaps://${DOMAIN_CONTROLLER}:636 \
-    -D "${DOMAIN_DN}" \
-    -w "${DOMAIN_PASSWORD}" \
-    -b "${DOMAIN_ROOT}" "(&(cn=*)(mail=$1))" 'mail' 'sAMAccountName' 'name' | \
-  grep -E 'mail|sAMAccountName|name'
-}
-
-ldap_public_key() {
-  ldapsearch \
-    -o ldif-wrap=no \
-    -H ldaps://${DOMAIN_CONTROLLER}:636 \
-    -D "${DOMAIN_DN}" \
-    -w "${DOMAIN_PASSWORD}" \
-    -b "${DOMAIN_ROOT}" "(&(cn=*)(sAMAccountName=$1))" 'sshPublicKey' | \
-  grep -v 'requesting:' | \
-  grep 'sshPublicKey' | \
-  cut -d " " -f2-
-}
 
 function greb() {
     REMOTE=${1:-$(git_main_branch)}
     git fetch origin && git rebase origin/${REMOTE}
-}
-
-get_me_creds() {
-  aws sso get-role-credentials \
-    --account-id $(aws configure get sso_account_id --profile ${AWS_PROFILE}) \
-    --role-name $(aws configure get sso_role_name --profile ${AWS_PROFILE}) \
-    --access-token $(find ~/.aws/sso/cache -type f ! -name "botocore*.json" | xargs jq -r .accessToken) \
-    --region $(aws configure get region --profile ${AWS_PROFILE}) |\
-  jq -r '.roleCredentials |
-      {
-        "AWS_ACCESS_KEY_ID": .accessKeyId,
-        "AWS_SECRET_ACCESS_KEY": .secretAccessKey,
-        "AWS_SESSION_TOKEN": .sessionToken,
-        "AWS_CREDENTIALS_EXPIRATION": (.expiration / 1000 | todate)
-      } | keys[] as $k | "export \($k)=\(.[$k])"'
 }
 
 # Typora
@@ -1075,120 +848,6 @@ fjq() {
 }
 
 
-function tf_target() {
-    local IFS=$'\n'
-    local RETURN='terraform apply'
-    while read -r line;
-    do
-        RETURN+=$(
-          echo "${line}" | \
-          cut \
-            -d ' ' \
-            -f 4 | \
-          sed \
-            -e "s/^/ --target='/" |\
-          sed -e "s/$/'/"
-        )
-      done < <(fzf --multi --exit-0 --tac --no-sort)
-    echo ${RETURN}
-}
-
-function tf_state_rm() {
-    local IFS=$'\n'
-    local RETURN='terraform state rm'
-    while read -r line;
-    do
-        RETURN+=$(
-          echo "${line}" | \
-          cut \
-            -d ' ' \
-            -f 4 | \
-          sed \
-            -e 's/\"/\\\"/g'
-        )
-      done < <(fzf --multi --exit-0 --tac --no-sort)
-    echo ${RETURN}
-}
-
-function tf_import() {
-    local IFS=$'\n'
-    local RETURN='terraform import'
-    while read -r line;
-    do
-        RETURN+=$(
-          echo "${line}" | \
-          cut \
-            -d ' ' \
-            -f 4 | \
-          sed \
-            -e 's/^/ /' \
-            -e 's/\[/\\\[/g' \
-            -e 's/\]/\\\]/g'
-        )
-      done < <(fzf --multi --exit-0 --tac --no-sort)
-    echo ${RETURN}
-}
-
-function tf_grep() {
-  grep \
-    -e '#' \
-    -e ' + ' \
-    -e ' - ' \
-    -e ' ~ ' \
-    -e '-/+'
-}
-
-function tf_list() {
-    local IFS=$'\n'
-    local RETURN='Items to be planned: \n'
-    while read -r line;
-    do
-        RETURN+=$(
-          echo "'\n${line}'" | \
-          cut \
-            -d ' ' \
-            -f 4 # | \
-          # sed \
-          #   -e 's/\"/\\\"/g'
-        )
-      done < <(fzf --multi --exit-0 --tac --no-sort)
-    echo ${RETURN}
-}
-
-# Vault Helper
-function vault_auth() {
-  URL="${VAULT_ADDR}/v1/auth/ldap/login/${DOMAIN_USERNAME}"
-  echo "Requesting Auth from ${URL}"
-  RESULTS=$(curl \
-    -k \
-    --request POST \
-    --data "{\"password\": \"${DOMAIN_PASSWORD}\"}" \
-    ${URL})
-    # echo ${RESULTS}
-    # echo ${RESULTS} | jq -r 'del(.auth.client_token)'
-    echo ${RESULTS} | jq -r .auth.client_token > $HOME/.vault-token
-}
-export -f vault_auth &>/dev/null
-
-function ecr() {
-  if [ -z "$1" ]; then
-    $(aws ecr get-login --no-include-email --registry-ids ${ECR_REGISTRY} --region us-east-1)
-  else
-    $(aws ecr get-login --no-include-email --registry-ids ${ECR_REGISTRY} --region us-east-1 --profile $1)
-  fi
-}
-
-function assume_role() {
-  if [ -z "$3" ]; then
-    echo "No role session name provided in \$3, using 'default'"
-  fi
-  ROLE_SESSION_NAME=${3:-default}
-  ASSUME_ROLE=$(aws sts assume-role --role-arn $1 --role-session-name ${ROLE_SESSION_NAME} --profile $2)
-  export AWS_ACCESS_KEY_ID=$(echo $ASSUME_ROLE | jq -r '.Credentials.AccessKeyId')
-  export AWS_SECRET_ACCESS_KEY=$(echo $ASSUME_ROLE | jq -r '.Credentials.SecretAccessKey')
-  export AWS_SESSION_TOKEN=$(echo $ASSUME_ROLE | jq -r '.Credentials.SessionToken')
-}
-
 function rename_msk() {
   if [ -z "$1" ]; then
     echo "Must provide app name!"
@@ -1199,21 +858,6 @@ function rename_msk() {
     return 1
   fi
   ls $1.* | sed "p;s/${1}/${1}-${2}/" | xargs -n2 mv
-}
-
-function kubectlgetall {
-  for i in $(kubectl api-resources --verbs=list --namespaced -o name | grep -v "events.events.k8s.io" | grep -v "events" | sort | uniq); do
-    echo "Resource:" $i
-    kubectl get --ignore-not-found ${i} -A -o yaml >> $1
-  done
-}
-
-function b64gzip {
-  if [ "$1" == "-d" ]; then
-    echo "$2" | base64 -d | gunzip
-  else
-    echo "$1" | gzip | base64
-  fi
 }
 
 traverse-upwards() {
@@ -1240,6 +884,21 @@ traverse() {
       cd ..
     done | fzf --tiebreak=end --height 50% --reverse --preview 'tree -C {} | head -200'
   ) && cd "$dir"
+}
+
+function kubectlgetall {
+  for i in $(kubectl api-resources --verbs=list --namespaced -o name | grep -v "events.events.k8s.io" | grep -v "events" | sort | uniq); do
+    echo "Resource:" $i
+    kubectl get --ignore-not-found ${i} -A -o yaml >> $1
+  done
+}
+
+function b64gzip {
+  if [ "$1" == "-d" ]; then
+    echo "$2" | base64 -d | gunzip
+  else
+    echo "$1" | gzip | base64
+  fi
 }
 
 ##### NOTES #####
@@ -1355,6 +1014,59 @@ function traverse_vault {
   done
 }
 
+# Recursive function that will
+# - List all the secrets in the given $path
+# - Call itself for all path values in the given $path
+function traverse_vault_helper {
+    if [ -z "$1" ]; then
+      echo "You must provide a vault addr as the first arg!"
+      return 1
+    else
+      local VAULT_ADDR="${1}"
+    fi
+    local readonly VAULT_TRAVERSE_PATH="$2"
+
+    RESULT=$(VAULT_ADDR=${VAULT_ADDR} vault kv list -format=json "${VAULT_TRAVERSE_PATH}" 2>&1)
+
+    STATUS=$?
+    if [ ! $STATUS -eq 0 ];
+    then
+      if [[ $RESULT =~ "permission denied" ]]; then
+        return
+      fi
+      >&2 echo "${RESULT}"
+    fi
+
+    for SECRET in $(echo "${RESULT}" | jq -r '.[]'); do
+        if [[ "${SECRET}" == */ ]]; then
+            traverse_vault_helper "${VAULT_TRAVERSE_PATH}${SECRET}"
+        else
+            echo "${VAULT_TRAVERSE_PATH}${SECRET}"
+        fi
+    done
+}
+
+function traverse_vault {
+  if [ -z "$1" ]; then
+    echo "You must provide a vault addr as the first arg!"
+    return 1
+  else
+    local VAULT_ADDR="${1}"
+  fi
+
+  if [[ "$2" ]]; then
+      # Make sure the path always end with '/'
+      VAULTS=("${2%"/"}/")
+  else
+      VAULTS=$(VAULT_ADDR="${VAULT_ADDR}" vault secrets list -format=json | jq -r 'to_entries[] | select(.value.type =="kv") | .key')
+  fi
+
+  for VAULT in $VAULTS; do
+      traverse_vault_helper ${VAULT_ADDR} ${VAULT}
+  done
+}
+
+
 function dc_trace_cmd() {
   local parent=`docker inspect -f '{{ .Parent }}' $1` 2>/dev/null
   declare -i level=$2
@@ -1365,6 +1077,18 @@ function dc_trace_cmd() {
     dc_trace_cmd $parent $level
   fi
 }
+
+### SOURCE OTHER FILES ###
+# setopt CHASE_LINKS
+# ZSH_DIR=$(dirname "${(%):-%x}")
+ZSH_DIR="$(dirname $(readlink -f "${(%):-%N}"))"
+source "${ZSH_DIR}/.zshrc_alias"
+source "${ZSH_DIR}/.zshrc_aws"
+source "${ZSH_DIR}/.zshrc_env"
+source "${ZSH_DIR}/.zshrc_ldap"
+source "${ZSH_DIR}/.zshrc_secure"
+source "${ZSH_DIR}/.zshrc_tf"
+# unsetopt CHASE_LINKS
 
 
 # Completion

@@ -1,0 +1,53 @@
+# So that we do not have to ever store credentials in plain text,
+# we store them in the keychain and load them into the shell
+# at runtime.
+
+KEYCHAIN="${HOME}/Library/Keychains/zsh_secure.keychain-db"
+
+security unlock-keychain \
+ "${KEYCHAIN}"
+
+security_generic_password(){
+  KEY="${1}"
+  VALUE=$(
+    security find-generic-password \
+      -s "${KEY}" \
+      -w \
+    "${KEYCHAIN}"
+  )
+  export "${KEY}=${VALUE}"
+}
+
+for KEY in $(
+  security dump-keychain \
+    -r ${KEYCHAIN} |\
+  sed -n 's/."svce"<blob>="\([^"]*\)".*/\1/p'
+); do
+  if [[ "${KEY}" == "GITHUB_APP_PEM_FILE" ]]; then
+    continue
+  fi
+  # echo "Sourcing ${KEY}"
+  security_generic_password "${KEY}"
+done
+
+# Function to read keychain item and set environment variable
+# This was the first iteration but the above doesnt handle files yet
+zsh_secure() {
+  local VAR_NAME=$1
+  local ACCOUNT_NAME=$2
+  local FORMAT=${3:-plain}
+  if [ -z "${ACCOUNT_NAME+x}" ]; then
+    local VALUE=$(security find-generic-password -s "$VAR_NAME" -w 2>/dev/null)
+  else
+    local VALUE=$(security find-generic-password -s "$VAR_NAME" -a "$ACCOUNT_NAME" -w 2>/dev/null)
+  fi
+  if [[ "${FORMAT}" == "pem" ]]; then
+    VALUE=$(echo "${VALUE}" | xxd -r -p)
+  fi
+  if [[ -n "$VALUE" ]]; then
+    export "$VAR_NAME=$VALUE"
+  fi
+}
+
+zsh_secure GITHUB_APP_PEM_FILE nomeelnoj pem
+

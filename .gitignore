@@ -1,4 +1,5 @@
 known_hosts
+plists/**
 
 # Vim Plugins
 **/.vim/pack/plugins/start/vim-terraform*

@@ -58,5 +58,5 @@
 [diff "git-dyff"]
   command = "git-dyff --args"
 # Specifics per company
-[includeIf "gitdir:~/src/COMPANY_GIT_ORG"]
+[includeIf "gitdir:~/src/COMPANY_GIT_ORG/"]
   path = ~/.gitcompany

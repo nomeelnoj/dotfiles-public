@@ -1,0 +1,214 @@
+export TF_PLUGIN_CACHE_DIR=~/.terraform
+
+function s3_import() {
+ if [ -z "$1" ]; then
+   echo "Must enter a bucket name!"
+   return 1
+ fi
+ terraform import module.s3.aws_s3_bucket.s3_bucket "${1}"
+ terraform import module.s3.aws_s3_bucket_policy.s3_bucket_policy "${1}"
+ terraform import 'module.s3.aws_s3_bucket_public_access_block.s3_public_access_block[0]' "${1}"
+}
+
+function tf_target() {
+    local IFS=$'\n'
+    local RETURN='terraform apply'
+    while read -r line;
+    do
+        RETURN+=$(
+          echo "${line}" | \
+          cut \
+            -d ' ' \
+            -f 4 | \
+          sed \
+            -e "s/^/ --target='/" |\
+          sed -e "s/$/'/"
+        )
+      done < <(fzf --multi --exit-0 --tac --no-sort)
+    echo ${RETURN}
+}
+
+function tf_state_rm() {
+    local IFS=$'\n'
+    local RETURN='terraform state rm'
+    while read -r line;
+    do
+        RETURN+=$(
+          echo "${line}" | \
+          cut \
+            -d ' ' \
+            -f 4 | \
+          sed \
+            -e 's/\"/\\\"/g'
+        )
+      done < <(fzf --multi --exit-0 --tac --no-sort)
+    echo ${RETURN}
+}
+
+function tf_import() {
+    local IFS=$'\n'
+    local RETURN='terraform import'
+    while read -r line;
+    do
+        RETURN+=$(
+          echo "${line}" | \
+          cut \
+            -d ' ' \
+            -f 4 | \
+          sed \
+            -e 's/^/ /' \
+            -e 's/\[/\\\[/g' \
+            -e 's/\]/\\\]/g'
+        )
+      done < <(fzf --multi --exit-0 --tac --no-sort)
+    echo ${RETURN}
+}
+
+function tf_grep() {
+  grep \
+    -e '#' \
+    -e ' + ' \
+    -e ' - ' \
+    -e ' ~ ' \
+    -e '-/+'
+}
+
+function tf_list() {
+    local IFS=$'\n'
+    local RETURN='Items to be planned: \n'
+    while read -r line;
+    do
+        RETURN+=$(
+          echo "'\n${line}'" | \
+          cut \
+            -d ' ' \
+            -f 4 # | \
+          # sed \
+          #   -e 's/\"/\\\"/g'
+        )
+      done < <(fzf --multi --exit-0 --tac --no-sort)
+    echo ${RETURN}
+}
+
+# Vault Helper
+function vault_auth() {
+  URL="${VAULT_ADDR}/v1/auth/ldap/login/${DOMAIN_USERNAME}"
+  echo "Requesting Auth from ${URL}"
+  RESULTS=$(curl \
+    -k \
+    --request POST \
+    --data "{\"password\": \"${DOMAIN_PASSWORD}\"}" \
+    ${URL})
+    # echo ${RESULTS}
+    # echo ${RESULTS} | jq -r 'del(.auth.client_token)'
+    echo ${RESULTS} | jq -r .auth.client_token > $HOME/.vault-token
+}
+export -f vault_auth &>/dev/null
+
+function s3_import(){
+    while [ $# -gt 0 ];
+    do
+        key="$1"
+        case $key in
+            -b)
+            local BUCKET=$2
+            shift # past argument
+            shift
+            ;;
+            -a)
+            local ACL="true"
+            shift # past argument
+            ;;
+            -l)
+            local LIFECYCLE="true"
+            shift # past argument
+            ;;
+            -log)
+            # debug everything
+            local LOGGING="true"
+            shift # past argument
+            ;;
+            -v)
+            local VERSIONING="true"
+            shift # past argument
+            ;;
+            -w)
+            local WEBSITE="true"
+            shift # past argument
+            ;;
+            *)    # unknown option
+            echo "unknown arg supplied"
+            return 1
+            shift # past argument
+            ;;
+        esac
+    done
+    if [ "${ACL}" = "true" ]; then
+        terraform import 'module.s3.aws_s3_bucket_acl.default[0]' $BUCKET
+    fi
+    if [ "${LIFECYCLE}" = "true" ]; then
+        terraform import 'module.s3.aws_s3_bucket_lifecycle_configuration.default[0]' $BUCKET
+    fi
+    if [ "${LOGGING}" = "true" ]; then
+        terraform import 'module.s3.aws_s3_bucket_logging.default[0]' $BUCKET
+    fi
+    terraform import 'module.s3.aws_s3_bucket_server_side_encryption_configuration.default' $BUCKET
+    if [ "${VERSIONING}" = "true" ]; then
+        terraform import 'module.s3.aws_s3_bucket_versioning.default' $BUCKET
+    fi
+    if [ "${WEBSITE}" = "true" ]; then
+        terraform import 'module.s3.aws_s3_bucket_website_configuration.default[0]' $BUCKET
+    fi
+}
+
+# Recursive function that will
+# - List all the secrets in the given $path
+# - Call itself for all path values in the given $path
+function traverse_vault_helper {
+    if [ -z "$1" ]; then
+      echo "You must provide a vault addr as the first arg!"
+      return 1
+    else
+      local VAULT_ADDR="${1}"
+    fi
+    local readonly VAULT_TRAVERSE_PATH="$2"
+
+    RESULT=$(VAULT_ADDR=${VAULT_ADDR} vault kv list -format=json "${VAULT_TRAVERSE_PATH}" 2>&1)
+
+    STATUS=$?
+    if [ ! $STATUS -eq 0 ];
+    then
+      if [[ $RESULT =~ "permission denied" ]]; then
+        return
+      fi
+      >&2 echo "${RESULT}"
+    fi
+
+    for SECRET in $(echo "${RESULT}" | jq -r '.[]'); do
+        if [[ "${SECRET}" == */ ]]; then
+            traverse_vault_helper "${VAULT_TRAVERSE_PATH}${SECRET}"
+        else
+            echo "${VAULT_TRAVERSE_PATH}${SECRET}"
+        fi
+    done
+}
+
+function traverse_vault {
+  if [ -z "$1" ]; then
+    echo "You must provide a vault addr as the first arg!"
+    return 1
+  else
+    local VAULT_ADDR="${1}"
+  fi
+
+  if [[ "$2" ]]; then
+      # Make sure the path always end with '/'
+      VAULTS=("${2%"/"}/")
+  else
+      VAULTS=$(VAULT_ADDR="${VAULT_ADDR}" vault secrets list -format=json | jq -r 'to_entries[] | select(.value.type =="kv") | .key')
+  fi
+
+  for VAULT in $VAULTS; do
+      traverse_vault_helper ${VAULT_ADDR} ${VAULT}
+  done
+}
