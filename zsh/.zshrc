@@ -10,6 +10,9 @@
 # export PATH="/opt/homebrew/opt/gnu-sed/libexec/gnubin:$PATH"
 # export PATH="/opt/homebrew/bin:$PATH"
 # export PATH="/Users/$USER/Library/Python/3.9/bin:$PATH"
+export REPO_ROOT="$HOME/src"
+export GITHUB_REPO_ROOT="${REPO_ROOT}/github.com"
+export BITBUCKET_REPO_ROOT="${REPO_ROOT}/bitbucket.org"
 
 # Path to your oh-my-zsh installation.
 export ZSH="${HOME}/.oh-my-zsh"
@@ -557,6 +560,14 @@ function git_clone() {
 #   cd ${DIR}
 # }
 
+function graph_png() {
+  if [ -z "${1}" ]; then
+    echo "FATAL: NO ARGS!!!"
+    return 1
+  fi
+
+  /usr/local/bin/dot -Tpng ${1} > ${1}.png && open ${1}.png
+}
 
 function aws_decode() {
   aws sts \
@@ -566,40 +577,35 @@ function aws_decode() {
     jq -r '.DecodedMessage | fromjson'
 }
 
-function expand_aws_attribute_new(){
+function expand_aws_attribute(){
 while read LINE; do
   DIR_PATH="${HOME}/src/github.com/iann0036/iam-dataset"
   if [ -d "${DIR_PATH}" ]; then
     RAW="-r"
-    if [[ "${LINE}" =~ ^\".*\"$ ]]; then
-      CLEAN=$(echo ${LINE} | cut -d \" -f2)
+    PREFIX="${LINE%:*}"
+    PREFIX="${PREFIX#\"}"
+    SUFFIX="${LINE#*:}"
+    SUFFIX="${SUFFIX%\"}"
+    SUFFIX_REGEX=^${SUFFIX//\*/\.\*}$
+    if [[ "${LINE}" =~ ^\".*\"$ ]] || [[ "${LINE}" =~ ^\".*\",$ ]]; then
       RAW=""
     fi
-    if [[ "${CLEAN}" =~ ^\".*\",$ ]]; then
-      CLEAN=$(echo ${CLEAN} | cut -d \" -f2)
-      RAW=""
-    fi
-    if [[ "${LINE}" =~ ^.*:\*$ ]]; then
-      CLEAN=${LINE}
-    else
-      CLEAN=^${CLEAN//\*/\.\*}$
-      fi
-    RESULTS=$(cat "${DIR_PATH}/map.json" |\
-    jq \
-      ${RAW} \
-      --arg key "${CLEAN}" \
-      '.sdk_method_iam_mappings[][] |
-      select(.action | test($key)?) |
-      .action' | sort | uniq
-      # --arg key "${CLEAN}" \
-      # '.sdk_method_iam_mappings[][] |
-      #  select(.action | startswith($key)) |
-      #  .action ' | sort | uniq
+    RESULTS=$(cat "${DIR_PATH}/iam_definition.json" |\
+      jq \
+        ${RAW} \
+        --arg prefix "${PREFIX}" \
+        --arg suffix "${SUFFIX_REGEX}" \
+        '.[]
+        | select(.prefix == $prefix)
+        | .privileges[].privilege
+        | select( . | test($suffix)?)
+        | ( $prefix + ":" + . )
+        '
     )
-    if [[ "${RAW}" == "" ]]; then
-      echo "${RESULTS}" | sort | uniq | sed 's/$/,/'
+    if [[ "${RAW}" == '' ]]; then
+      echo "${RESULTS}" | sed 's/$/,/'
     else
-     echo "${RESULTS}" | sort | uniq
+     echo "${RESULTS}"
     fi
   else
     git_clone git@github.com:iann0036/iam-dataset
@@ -607,7 +613,7 @@ while read LINE; do
 done < "${1:-/dev/stdin}"
 }
 
-function expand_aws_attribute(){
+function expand_aws_attribute_old(){
 while read LINE
 do
   # set -x
