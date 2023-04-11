@@ -5,6 +5,7 @@ ldap_membership() {
     -D "${DOMAIN_DN}" \
     -w "${DOMAIN_PASSWORD}" \
     -b "${DOMAIN_ROOT}" "(&(cn=*)(sAMAccountName=$1))" 'memberOf' | \
+  grep -v 'requesting:' | \
   grep 'memberOf' | \
   awk '{print $2}'
 }
@@ -64,42 +65,46 @@ ldap_public_key() {
   cut -d " " -f2-
 }
 
-# TO DO: Work out the kinks with the above functions
-# ldap_query() { SEARCH="${1}"; FILTER="${2}"; QUERY="${3}";
-#   if [[ ${QUERY} == '' ]]; then
-#     if [[ "${SEARCH}" == *"@"* ]]; then
-#       local DEFAULT_FIELD='mail'
-#     else
-#       local DEFAULT_FIELD='sAMAccountName'
-#     fi
-#     QUERY="(&(cn=*)(${DEFAULT_FIELD}=${SEARCH}))"
-#   fi
+# TO DO: Work out the kinks in replacing the above with the below generic function
+ldap_query() {
+  set -x
+  SEARCH="${1}"
+  FILTER="${2}"
+  QUERY="${3}"
+  if [[ ${QUERY} == '' ]]; then
+    if [[ "${SEARCH}" == *"@"* ]]; then
+      local DEFAULT_FIELD='mail'
+    else
+      local DEFAULT_FIELD='sAMAccountName'
+    fi
+    QUERY="(&(cn=*)(${DEFAULT_FIELD}=${SEARCH}))"
+  fi
 
-#   LDAP_RESULTS=$(
-#     ldapsearch \
-#       -o ldif-wrap=no \
-#       -H "ldaps://${DOMAIN_CONTROLLER}:636" \
-#       -D "${DOMAIN_DN}" \
-#       -w "${DOMAIN_PASSWORD}" \
-#       -b "${DOMAIN_ROOT}" \
-#          "${QUERY}" \
-#          ${FILTER}
-#   )
+  LDAP_RESULTS=$(
+    ldapsearch \
+      -o ldif-wrap=no \
+      -H "ldaps://${DOMAIN_CONTROLLER}:636" \
+      -D "${DOMAIN_DN}" \
+      -w "${DOMAIN_PASSWORD}" \
+      -b "${DOMAIN_ROOT}" \
+         "${QUERY}" \
+         ${FILTER}
+  )
 
-#   if [[ "${FILTER}" != '' ]]; then
-#     echo "${LDAP_RESULTS}" |\
-#     grep -v 'requesting:' |\
-#     grep -E "^${FILTER}" |\
-#     awk -F':' '{print $2}' |\
-#     sed -e 's/^[ ]*//'
-#   else
-#     echo "${LDAP_RESULTS}"
-#   fi
-# }
-# # Legacy function names retained for backwards compatibility.
-# ldap_membership() { ldap_query "${1}" 'memberOf'; }
-# ldap_membership_email() { ldap_query "${1}" 'sAMAccountName'; }
-# ldap_membership_full() { ldap_query '' '' "(&(cn=*)(sAMAccountName=${1}))"; }
-# ldap_group() { ldap_query '' 'member' "(&(cn=$1))"; }
-# ldap_public_key() { ldap_query "${1}" 'sshPublicKey'; }
+  if [[ "${FILTER}" != '' ]]; then
+    echo "${LDAP_RESULTS}" |\
+    grep -v 'requesting:' |\
+    grep -E "^${FILTER}" |\
+    awk -F':' '{print $2}' |\
+    sed -e 's/^[ ]*//'
+  else
+    echo "${LDAP_RESULTS}"
+  fi
+}
+
+# ldap_membership() { ldap_query "${1}" 'memberOf' }
+# ldap_email() { ldap_query "${1}" 'sAMAccountName' }
+# ldap_membership_full() { ldap_query '' '' "(&(cn=*)(sAMAccountName=${1}))" }
+# ldap_group() { ldap_query '' 'member' "(&(cn=$1))" }
+# ldap_public_key() { ldap_query "${1}" 'sshPublicKey' }
 # ldap_email() { ldap_query '' "'mail' 'sAMAccountName' 'name'" "(&(cn=*)(mail=$1))" }

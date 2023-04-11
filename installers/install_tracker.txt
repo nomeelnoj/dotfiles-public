@@ -1,0 +1,22 @@
+# This file keeps a record of all packages installed via boostrap.sh or manually
+# using the helper functions gh_install_release and brew_install_cask
+aws-iam-authenticator
+dyff
+fzf
+hcl2json
+hcledit
+iam-policy-json-to-terraform
+json2hcl
+jwt
+mlr
+terraform-state-mover
+watch
+yq
+alfred
+iterm2
+sublime-text
+dropbox
+copyq
+istat-menus
+bartender
+flux

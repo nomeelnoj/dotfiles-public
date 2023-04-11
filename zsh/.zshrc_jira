@@ -1,0 +1,112 @@
+function tjira() {
+  if [ -z "$2" ]; then
+    QUERY="--query 'project IN (${1}) AND resolution = unresolved AND status != Closed ORDER BY created'"
+  elif [ "$2" = "all" ]; then
+    QUERY="--query 'project IN (${1}) ORDER BY created'"
+  fi
+}
+export JIRA_PROJECTS="DATA"
+function fjira() {
+  if [ -z "$2" ]; then
+    QUERY="project IN (${1}) AND resolution = unresolved AND status != Closed ORDER BY created"
+  elif [ "$2" = "all" ]; then
+    QUERY="project IN (${1}) ORDER BY created"
+  fi
+  local IFS=$'\n'
+  jira list \
+    --query "${QUERY}" \
+    --template list |\
+  fzf-tmux \
+    --query="$1" \
+    --multi \
+    --select-1 \
+    --preview  "echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c 'jira view %'" \
+    --bind 'enter:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira edit % < /dev/tty"
+      /,Ctrl-t:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira take %"
+      /,Ctrl-C:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira transition --resolution=Done Resolved % < /dev/tty"
+      /,Ctrl-c:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira transition --resolution=Done Done % < /dev/tty"
+      /,Ctrl-s:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira transition \"In Dev\" % --noedit"
+      /,Ctrl-S:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira transition \"In Progress\" % --noedit"
+      /' \
+    --exit-0
+}
+
+# My tickets
+function mjira() {
+  if [ -z "$2" ]; then
+    QUERY="project IN (${1}) AND assignee = ${JIRA_USER_ID} AND resolution = unresolved AND status != Closed ORDER BY created"
+  elif [ "$2" = "all" ]; then
+    QUERY="project IN (${1}) AND assignee = ${JIRA_USER_ID} ORDER BY created"
+  elif [ -z "$1" ]; then
+    QUERY="assignee = ${JIRA_USER_ID} AND resolution = unresolved AND status != Closed ORDER BY created"
+  fi
+  local IFS=$'\n'
+  jira list \
+    --query "${QUERY}" \
+    --template list |\
+  fzf-tmux \
+    --query="$1" \
+    --multi \
+    --select-1 \
+    --preview  "echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c 'jira view %'" \
+    --bind 'enter:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira edit % < /dev/tty"
+      /,Ctrl-t:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira take %"
+      /,Ctrl-C:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira transition --resolution=Done Accepted % < /dev/tty"
+      /,Ctrl-c:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira transition --resolution=Done Done % < /dev/tty"
+      /,Ctrl-s:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira transition \"In Dev\" % --noedit"
+      /,Ctrl-S:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira transition \"In Progress\" % --noedit"
+      /' \
+    --exit-0
+}
+
+# Unresolved tickets in current sprint
+function sjira() {
+  QUERY="project = DATA AND assignee = ${JIRA_USER_ID} AND sprint in openSprints() AND resolution = unresolved AND status != Closed ORDER BY created"
+  local IFS=$'\n'
+  jira list \
+    --query "${QUERY}" \
+    --template list |\
+  fzf-tmux \
+    --query="$1" \
+    --multi \
+    --select-1 \
+    --preview  "echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c 'jira view %'" \
+    --bind 'enter:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira edit % < /dev/tty"
+      /,Ctrl-c:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira transition --resolution=Done Accepted % < /dev/tty"
+      /,Ctrl-s:execute/
+      echo {} | cut -d ':' -f 1 |
+      xargs -I % sh -c "jira transition \"In Dev\" % --noedit"
+      /' \
+    --exit-0
+}

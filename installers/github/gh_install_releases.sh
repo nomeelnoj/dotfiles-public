@@ -4,6 +4,8 @@ export DOTFILE_PATH="${HOME}/src/github.com/nomeelnoj/dotfiles"
 
 source "${DOTFILE_PATH}/installers/generic/install_helpers.sh"
 
+INSTALL_TRACKER_FILE="${DOTFILE_PATH}/installers/install_tracker.txt"
+
 extract_tar_binary() {
   local TARGET_DIR="${1}"
   local TOOL="${2}"
@@ -30,20 +32,31 @@ extract_tar_binary() {
 #         done\" bash {} +
 # }
 
+
+
 gh_install_releases() {
-  requirements_check "jq,gh"
+  requirements_check "jq,gh,sponge"
+  get_input_args "$@"
+  process_args
   if [ -f "${1}" ]; then
     RELEASES_FILE_CONTENTS=$(cat "${1}")
   else
     RELEASES_FILE_CONTENTS=$(
       jq --null-input \
-        --arg tool $1 \
-        --arg repo $2 \
-        '{($tool): ($repo)}'
+      --arg tool $1 \
+      --arg repo $2 \
+      '{($tool): ($repo)}'
     )
   fi
   for TOOL in $(echo "${RELEASES_FILE_CONTENTS}" | jq -r '. | keys[]'); do
-    if command -v "${TOOL}" &>/dev/null; then
+    if ! jq -r '. | keys[]' "${DOTFILE_PATH}/installers/github/releases.json" | grep -v "${TOOL}"; then
+      echo "Adding tool to releases.json"
+      jq --arg tool $1 --arg repo $2 '.[] += {($tool): ($repo)}' "${DOTFILE_PATH}/installers/github/releases.json" |\
+         sponge "${DOTFILE_PATH}/installers/github/releases.json"
+    fi
+    if [ "${FORCE}" == "true" ]; then
+      echo "Overriding check for existing installation"
+    elif command -v "${TOOL}" &> /dev/null; then
       echo "Tool ${TOOL} is already installed.  Skipping"
       continue
     fi
@@ -80,7 +93,7 @@ gh_install_releases() {
     SHASUM=$(shasum -a 256 "${DOWNLOADED_RELEASE}")
     popd
     for CHECKSUMS_FILE in ${CHECKSUMS_FILES[@]}; do
-      if (! grep -q "${SHASUM}" "${TARGET_DIR}/${RELEASE_SHA_FILE}" || true) && (! grep -q "${SHASUM}" "${TARGET_DIR}/${CHECKSUMS_FILE}"); then
+      if ( ! grep -q "${SHASUM}" "${TARGET_DIR}/${RELEASE_SHA_FILE}" || true ) && ( ! grep -q "${SHASUM}" "${TARGET_DIR}/${CHECKSUMS_FILE}" ); then
         echo "Shasum for ${TOOL} could not be validated.  You might want to check it locally or proceed with caution"
       fi
     done
@@ -89,22 +102,25 @@ gh_install_releases() {
     # they have periods in them.
     local RELEASE_TYPE=$(file -bI "${TARGET_DIR}/${DOWNLOADED_RELEASE}" | cut -d ';' -f1)
     case $RELEASE_TYPE in
-    application/gzip)
-      tar -zxvf "${TARGET_DIR}/${DOWNLOADED_RELEASE}" -C "${TARGET_DIR}"
-      # Packages often have LICENSE and README.  This will move only the binary
-      extract_tar_binary "${TARGET_DIR}" "${TOOL}" "${DOWNLOADED_RELEASE}"
+      application/gzip )
+        tar -zxvf "${TARGET_DIR}/${DOWNLOADED_RELEASE}" -C "${TARGET_DIR}"
+        # Packages often have LICENSE and README.  This will move only the binary
+        extract_tar_binary "${TARGET_DIR}" "${TOOL}" "${DOWNLOADED_RELEASE}"
       ;;
-    application/zip)
-      unzip "${TARGET_DIR}/${DOWNLOADED_RELEASE}" -d "${TARGET_DIR}"
-      extract_tar_binary "${TARGET_DIR}" "${TOOL}"
+      application/zip )
+        unzip "${TARGET_DIR}/${DOWNLOADED_RELEASE}" -d "${TARGET_DIR}"
+        extract_tar_binary "${TARGET_DIR}" "${TOOL}"
       ;;
-    application/x-mach-binary) # If there is no extension, we assume it is already a binary
-      chmod +x "${TARGET_DIR}/${DOWNLOADED_RELEASE}"
-      mv "${TARGET_DIR}/${DOWNLOADED_RELEASE}" "/usr/local/bin/${TOOL}"
+      application/x-mach-binary ) # If there is no extension, we assume it is already a binary
+        chmod +x "${TARGET_DIR}/${DOWNLOADED_RELEASE}"
+        mv "${TARGET_DIR}/${DOWNLOADED_RELEASE}" "/usr/local/bin/${TOOL}"
+        if ! grep "${TOOL}" "${INSTALL_TRACKER_FILE}"; then
+          echo "${TOOL}" >> "${INSTALL_TRACKER_FILE}"
+        fi
       ;;
-    *)
-      echo "Could not process ${TOOL}".
-      echo "Download manually from https://github.com/${REPO}/releases".
+      *)
+        echo "Could not process ${TOOL}".
+        echo "Download manually from https://github.com/${REPO}/releases".
       ;;
     esac
     echo "${TOOL} installed successfully"

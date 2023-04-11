@@ -1,0 +1,93 @@
+function dc_trace_cmd() {
+  local parent=`docker inspect -f '{{ .Parent }}' $1` 2>/dev/null
+  declare -i level=$2
+  echo ${level}: `docker inspect -f '{{ .ContainerConfig.Cmd }}' $1 2>/dev/null`
+  level=level+1
+  if [ "${parent}" != "" ]; then
+    echo ${level}: $parent
+    dc_trace_cmd $parent $level
+  fi
+}
+
+function get_secret() {
+  if [ -z "$1" ]; then
+    echo "Must provide a secret name!"
+    return 1
+  fi
+  if [ -z "$2" ]; then
+    COMMAND="kubectl get secret $1 -o json | jq '.data | with_entries(.value |= (. | @base64d))'"
+  else
+    COMMAND="kubectl --context $2 get secret $1 -o json | jq '.data | with_entries(.value |= (. | @base64d))'"
+  fi
+  eval $COMMAND
+}
+
+function kcadmin() {
+  if [ -z "$1" ]; then
+    kubectl exec -it $(kubectl get pod --selector=release=admin-pod -o jsonpath='{.items[*].metadata.name}') -- bash
+  else
+    echo "Using context $1 for admin pod"
+    kubectl --context $1 exec -it $(kubectl --context $1 get pod --selector=release=admin-pod -o jsonpath='{.items[*].metadata.name}') -- bash
+  fi
+}
+
+function kubectlgetall {
+  for i in $(kubectl api-resources --verbs=list --namespaced -o name | grep -v "events.events.k8s.io" | grep -v "events" | sort | uniq); do
+    echo "Resource:" $i
+    kubectl get --ignore-not-found ${i} -A -o yaml >> $1
+  done
+}
+
+function move_certs() {
+  if [ -z "$1" ]; then
+    echo "Must provide a cert CN name!"
+    return 1
+  fi
+  if [ -z "$2" ]; then
+    echo "Must provide an env name!"
+  fi
+  COMMAND="ls $1* | sed -e 'p;s/${1}/${1}-${2}/' | xargs -n2 mv"
+  eval $COMMAND
+}
+
+function rename_msk() {
+  if [ -z "$1" ]; then
+    echo "Must provide app name!"
+    return 1
+  fi
+  if [ -z "$2" ]; then
+    echo "Must provide target env name!"
+    return 1
+  fi
+  ls $1.* | sed "p;s/${1}/${1}-${2}/" | xargs -n2 mv
+}
+
+function secretseal() {
+    if [ -z "$1" ]
+    then
+        echo "FATAL: Enter a secret name"
+        return 1
+    fi
+    if [ -z "$2" ]
+    then
+        echo "FATAL: Enter a secret key name"
+        return 1
+    fi
+    if [ -z "$3" ]
+    then
+        echo "FATAL: Enter a file name to pull the secret from"
+        return 1
+    fi
+    if [ -z "${4}" ]
+    then
+        echo "FATAL: Enter an environment"
+        return 1
+    fi
+
+    kubectl --context=${4} create secret generic ${1} --dry-run --from-file=${2}=${3} -o json | kubeseal --cert sealed-secrets-${4}.crt --format yaml > ${1}.yaml
+}
+
+# TO find all files and add specific text at the beginning:
+# perl -0777 -i -pe 's/(.*)/apiVersion: kustomize.config.k8s.io\/v1beta1\nkind: Kustomization\n\1/' resources/admin-tools/overlays/dev/kustomization.yaml
+# find . -name 'kustomization.yaml' | xargs perl -0777 -i -pe 's/(.*)/apiVersion: kustomize.config.k8s.io\/v1beta1\nkind: Kustomization\n\1/'
+

@@ -1,8 +1,8 @@
 alfred
+bartender
+copyq
+dropbox
+flux
+istat-menus
 iterm2
 sublime-text
-dropbox
-copyq
-istat-menus
-bartender
-flux

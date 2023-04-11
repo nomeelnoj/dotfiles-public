@@ -46,14 +46,11 @@ def sort_bashrc(bashrc_path):
     # followed by any remaining non-function lines
     sorted_file_path = bashrc_path + "_sorted"
     with open(sorted_file_path, "w") as f:
-        f.write("# Sorted functions\n")
         for function in functions:
             f.write(function)
-        # f.write("\n")
-        f.write("# Non-function lines\n")
+        f.write("##### Non-function lines #####\n")
         for line in non_functions_dedup:
             f.write(line + "\n")
-        # f.write("\n")
 
     print(f"Sorted functions written to {sorted_file_path}.")
 

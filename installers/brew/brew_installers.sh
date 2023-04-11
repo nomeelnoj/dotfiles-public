@@ -4,6 +4,9 @@ export DOTFILE_PATH="${HOME}/src/github.com/nomeelnoj/dotfiles"
 
 source "${DOTFILE_PATH}/installers/generic/install_helpers.sh"
 
+BREW_CASK_INSTALLS="${DOTFILE_PATH}/installers/brew/casks.txt"
+BREW_FORMULAE_INSTALLS="${DOTFILE_PATH}/installers/brew/formulae.txt"
+
 install_brew_cask() {
   # I hate homebrew, so we use it as little as possible
   local TARGET_DIR=$(mktemp -d)
@@ -11,9 +14,12 @@ install_brew_cask() {
   requirements_check "jq,wget"
 
   for PACKAGE in ${@}; do
-    DOWNLOAD_INFO=$(
-      curl -s "https://formulae.brew.sh/api/cask/${PACKAGE}.json" |
-        jq -r '[.url, .sha256, (.artifacts[].app | select(. != null)[])] | @tsv'
+    # If we install manually using this function, add it to our list for future runs of bootstrap.sh
+    if ! grep "${PACKAGE}" "${BREW_CASK_INSTALLS}"; then
+      echo "${PACKAGE}" >> "${INSTALL_TRACKER_FILE}"
+    fi
+    DOWNLOAD_INFO=$(curl -s "https://formulae.brew.sh/api/cask/${PACKAGE}.json" |\
+      jq -r '[.url, .sha256, (.artifacts[].app | select(. != null)[])] | @tsv'
     )
     URL=$(echo "${DOWNLOAD_INFO}" | awk -F '\t' '{print $1}')
     SHASUM=$(echo "${DOWNLOAD_INFO}" | awk -F '\t' '{print $2}')
@@ -34,7 +40,16 @@ install_brew_cask() {
 }
 
 install_brew_formulae() {
-  pushd "${DOTFILE_PATH}/installers/brew"
-  cat formulas.txt | xargs -I {} bash -c "brew list {} || brew install {}"
-  popd
+  if [ -z "${1}" ]; then
+    pushd "${BREW_FORMULAE_INSTALLS%/*}"
+    cat "${BREW_FORMULAE_INSTALLS##*/}" | xargs -I {} bash -c "brew list {} || brew install {}"
+    popd
+  else
+    for PACKAGE in "${@}"; do
+      brew list "${PACKAGE}" || brew install "${PACKAGE}"
+        if ! grep "${PACKAGE}" "${BREW_FORMULAE_INSTALLS}"; then
+          echo "${PACKAGE}" >> "${INSTALL_TRACKER_FILE}"
+        fi
+    done
+  fi
 }

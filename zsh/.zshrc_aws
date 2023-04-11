@@ -112,20 +112,109 @@ do
 done < "${1:-/dev/stdin}"
 }
 
-alias aws="aws --no-cli-pager"
+function get_dns_records() {
+  PROFILE="${1}"
+  HOSTED_ZONE_ID="${2}"
 
-validate_aws_credentials() {
-  if [[ -z ${1+x} ]]; then PROFILES=${AWS_PROFILE}; else PROFILES=${1}; fi
-  echo "profiles list: $PROFILES"
-  for PROFILE in ${PROFILES//,/ }
+  if [ -z "${PROFILE+x}" ] || [ -z "${HOSTED_ZONE_ID+x}" ]; then
+    echo "Not enough args!"
+    echo '$1 = AWS_PROFILE'
+    echo '$2 = HOSTED_ZONE_ID'
+    return 1
+  fi
+  aws route53 list-resource-record-sets \
+    --hosted-zone "${HOSTED_ZONE_ID}" \
+    --profile "${PROFILE}" |\
+      jq 'reduce .ResourceRecordSets[] as $record
+        ({}; .[$record.Name] =
+        if $record | has("AliasTarget")
+        then $record.AliasTarget.DNSName
+        else $record.ResourceRecords[].Value
+        end)
+      '
+}
+
+function get_me_creds() {
+  aws sso get-role-credentials \
+    --account-id $(aws configure get sso_account_id --profile ${AWS_PROFILE}) \
+    --role-name $(aws configure get sso_role_name --profile ${AWS_PROFILE}) \
+    --access-token $(find ~/.aws/sso/cache -type f ! -name "botocore*.json" | xargs jq -r .accessToken) \
+    --region $(aws configure get region --profile ${AWS_PROFILE}) |\
+  jq -r '.roleCredentials |
+      {
+        "AWS_ACCESS_KEY_ID": .accessKeyId,
+        "AWS_SECRET_ACCESS_KEY": .secretAccessKey,
+        "AWS_SESSION_TOKEN": .sessionToken,
+        "AWS_CREDENTIALS_EXPIRATION": (.expiration / 1000 | todate)
+      } | keys[] as $k | "export \($k)=\(.[$k])"'
+}
+
+function kms_decrypt {
+    if [ -z "$1" ]
+    then
+        echo "FATAL: Enterciphertext as the first arg"
+        return 1
+    fi
+    aws kms decrypt --ciphertext-blob fileb://<(echo "$1" | base64 -d) --output text --query Plaintext | base64 -d
+}
+
+function kms_file() {
+    if [ -z "$1" ]
+    then
+        echo "FATAL: Enter a key alias the first arg (starting with alias)"
+        return 1
+    fi
+    if [ -z "$2" ]
+    then
+        echo "FATAL: Enter a secret value as the second arg"
+        return 1
+    fi
+    aws kms encrypt --key-id "${1}" --plaintext fileb://"$2" --output text --query CiphertextBlob | clip
+}
+
+function kms_secret() {
+    if [ -z "$1" ]
+    then
+        echo "FATAL: Enter a key alias the first arg (starting with alias)"
+        return 1
+    fi
+    if [ -z "$2" ]
+    then
+        echo "FATAL: Enter a secret value as the second arg"
+        return 1
+    fi
+    aws kms encrypt --key-id "${1}" --plaintext fileb://<(echo -n "$2") --output text --query CiphertextBlob | clip
+}
+
+function list_suppressed_ses_destinations() {
+
+  AWS_PROFILE=$1
+
+  if [ -z "${1}" ]; then
+    echo "No profile provided as first positional arg! Using default aws credential chain"
+  fi
+
+  RESULTS=$(
+    aws sesv2 \
+    list-suppressed-destinations
+  )
+  echo "$RESULTS" | jq -r '.SuppressedDestinationSummaries[] | [.EmailAddress,.Reason] | @tsv'
+
+  NEXT_TOKEN=$(echo $RESULTS | jq -r '.NextToken')
+
+  while [ "$NEXT_TOKEN" != "null" ]
   do
-    AWS_PROFILE=${PROFILE}
-    echo "AWS Profile: ${AWS_PROFILE}"
-    aws --no-cli-pager sts get-caller-identity --profile $AWS_PROFILE
+      RESULTS=$(
+        aws sesv2 \
+        list-suppressed-destinations \
+        --next-token $NEXT_TOKEN
+      )
+      NEXT_TOKEN=$(echo $RESULTS | jq -r '.NextToken')
+      echo "$RESULTS" | jq -r '.SuppressedDestinationSummaries[] | [.EmailAddress,.Reason] | @tsv'
   done
 }
 
-okta_auth() {
+function okta_auth() {
   DUO_DEVICE="phone1"
   if [[ $(ioreg -p IOUSB -l -w 0 | grep '"USB Vendor Name" = "Yubico"') ]]; then
     DUO_DEVICE='u2f'
@@ -153,7 +242,7 @@ okta_auth() {
   done
 }
 
-okta_auth_manual() {
+function okta_auth_manual() {
     if [ -z "$1" ]; then
         echo "Must provide a profile name!"
         return 1
@@ -161,17 +250,16 @@ okta_auth_manual() {
     aws-okta --debug --mfa-provider DUO --mfa-duo-device u2f --mfa-factor-type web write-to-credentials $1 ~/.aws/credentials
 }
 
-get_me_creds() {
-  aws sso get-role-credentials \
-    --account-id $(aws configure get sso_account_id --profile ${AWS_PROFILE}) \
-    --role-name $(aws configure get sso_role_name --profile ${AWS_PROFILE}) \
-    --access-token $(find ~/.aws/sso/cache -type f ! -name "botocore*.json" | xargs jq -r .accessToken) \
-    --region $(aws configure get region --profile ${AWS_PROFILE}) |\
-  jq -r '.roleCredentials |
-      {
-        "AWS_ACCESS_KEY_ID": .accessKeyId,
-        "AWS_SECRET_ACCESS_KEY": .secretAccessKey,
-        "AWS_SESSION_TOKEN": .sessionToken,
-        "AWS_CREDENTIALS_EXPIRATION": (.expiration / 1000 | todate)
-      } | keys[] as $k | "export \($k)=\(.[$k])"'
+function validate_aws_credentials() {
+  if [[ -z ${1+x} ]]; then PROFILES=${AWS_PROFILE}; else PROFILES=${1}; fi
+  echo "profiles list: $PROFILES"
+  for PROFILE in ${PROFILES//,/ }
+  do
+    AWS_PROFILE=${PROFILE}
+    echo "AWS Profile: ${AWS_PROFILE}"
+    aws --no-cli-pager sts get-caller-identity --profile $AWS_PROFILE
+  done
 }
+
+# Non-function lines
+alias aws="aws --no-cli-pager"

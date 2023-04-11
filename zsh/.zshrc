@@ -1,5 +1,5 @@
-# Measure performance, shell is slow
-# zmodload zsh/zprof
+# To time sourcing and issues therein, use zprof
+zmodload zsh/zprof # Requires zprof at the end of file to be uncommented
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
 #
@@ -30,6 +30,13 @@ DEFAULT_USER="${USER}"
 # POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(virtualenv kubecontext)
 # POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(context dir vcs)
 #POWERLEVEL9K_VCS_GIT_BITBUCKET_ICON="\uE703"
+
+function cclip() {
+  while read line; do
+    echo 'echo '"$line"'' | pbcopy
+  done
+}
+
 
 prompt_context(){}
 
@@ -422,67 +429,6 @@ export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$HOME/go/bin:$PATH"
 #  fi
 #}
 
-#############
-# Aliases
-#############
-alias gam="python ${HOME}/src/GAM/GAM-3.65/src/gam.py"
-alias mirror="${HOME}/src/GAM/mirror_user.sh"
-alias newgroup="${HOME}/src/GAM/newgroup.sh"
-alias newhire="${HOME}/src/GAM/newhire.sh"
-alias terminate="${HOME}/src/GAM/term_user.sh"
-alias remove="${HOME}/src/GAM/remove_groups.sh"
-alias patent="${HOME}/src/GAM/patent.sh"
-alias updategroup="${HOME}/src/GAM/groupadd.sh"
-alias membership="${HOME}/src/GAM/members_can_view.sh"
-alias assettags="${HOME}/src/Casper/update_computer_info.sh"
-alias butler="cd $PROJECT_PATH && python butler.py"
-alias login-ecr='$(aws ecr get-login --region us-west-2 --no-include-email)'
-alias prod-rds="aws rds describe-db-snapshots --db-instance-identifier db-prod-01 --snapshot-type automated --query \"DBSnapshots[?SnapshotCreateTime>='`date +%Y-%m-%d`'].DBSnapshotIdentifier\""
-alias docker-chrome="docker run -p 5900:5900 -e VNC_SERVER_PASSWORD=password --user apps --privileged local/chrome:0.0.1"
-alias kc="kubectl"
-alias kb="kustomize build"
-alias kcn="kubectl config set-context --current --namespace"
-alias update_kustomize='/usr/local/bin/update_kustomize.sh'
-alias kustom="python3 kustom.py"
-alias dc=docker-compose
-alias gpush="git push -u"
-alias vault-groups="vault list /auth/ldap/groups | tail -n +3 | xargs -I{} sh -c 'printf \"{}\": ; vault read --format json /auth/ldap/groups/{} | jq .data.policies -r'"
-alias tf="terraform"
-alias tfp="terraform plan"
-alias tfi="terraform init --upgrade"
-alias tfa="terraform apply"
-alias gitcm="git checkout master"
-alias gmp="git checkout master && git pull"
-alias clip="pbcopy"
-alias clipi="tee <(pbcopy)"
-alias airport="/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport"
-alias fluxall="kubectl get kustomization,imageupdateautomation,imagepolicy,imagerepository,helmrelease,gitrepository,helmrepository"
-alias cluster_auth="~/repo/personal/tools/bash_icauth.sh"
-alias grep="grep --binary-file=without-match"
-alias tu="traverse-upwards"
-alias td="traverse"
-alias ing="ingress.v1.networking.k8s.io"
-alias cloudtrail_query="~/dotfiles/cloudtrail_query.sh"
-alias gh='EDITOR="sublime --wait --new-window" gh'
-alias colordiff="git diff --no-index $1 $2"
-alias aws="aws --no-cli-pager"
-
-#################
-# Env Variables #
-#################
-export PS1="\W \$ "
-export DELETE_ES_INDICES="1"
-export DISABLE_LAUNCH_DARKLY="0"
-export DISABLE_PHANTOMJS_DOWNLOADS="1"
-export MIGRATE_ON_EDITOR_START=1
-export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk1.8.0_171.jdk/Contents/Home
-export GROOVY_HOME=/usr/local/bin/groovy
-export GPG_TTY=$(tty)
-export GOBIN="/Users/jleemon/go/bin"
-export TF_PLUGIN_CACHE_DIR=~/.terraform
-export ECR_IMAGE_REPO="${ECR_REGISTRY}.dkr.ecr.us-east-1.amazonaws.com"
-export GODEBUG=asyncpreemptoff=1
-
 ###############
 ## Functions ##
 ###############
@@ -569,15 +515,6 @@ function graph_png() {
   /usr/local/bin/dot -Tpng ${1} > ${1}.png && open ${1}.png
 }
 
-function kcadmin() {
-  if [ -z "$1" ]; then
-    kubectl exec -it $(kubectl get pod --selector=release=admin-pod -o jsonpath='{.items[*].metadata.name}') -- bash
-  else
-    echo "Using context $1 for admin pod"
-    kubectl --context $1 exec -it $(kubectl --context $1 get pod --selector=release=admin-pod -o jsonpath='{.items[*].metadata.name}') -- bash
-  fi
-}
-
 function openpref() {
     if [ -z "$1" ]
     then
@@ -586,31 +523,6 @@ function openpref() {
     else
         open -b com.apple.systempreferences /System/Library/PreferencePanes/$1.prefPane
     fi
-}
-
-function secretseal() {
-    if [ -z "$1" ]
-    then
-        echo "FATAL: Enter a secret name"
-        return 1
-    fi
-    if [ -z "$2" ]
-    then
-        echo "FATAL: Enter a secret key name"
-        return 1
-    fi
-    if [ -z "$3" ]
-    then
-        echo "FATAL: Enter a file name to pull the secret from"
-        return 1
-    fi
-    if [ -z "${4}" ]
-    then
-        echo "FATAL: Enter an environment"
-        return 1
-    fi
-
-    kubectl --context=${4} create secret generic ${1} --dry-run --from-file=${2}=${3} -o json | kubeseal --cert sealed-secrets-${4}.crt --format yaml > ${1}.yaml
 }
 
 function kms_file() {
@@ -674,31 +586,6 @@ function restart_gp() {
   launchctl load /Library/LaunchAgents/com.paloaltonetworks.gp.pangp*
 }
 
-function get_secret() {
-  if [ -z "$1" ]; then
-    echo "Must provide a secret name!"
-    return 1
-  fi
-  if [ -z "$2" ]; then
-    COMMAND="kubectl get secret $1 -o json | jq '.data | with_entries(.value |= (. | @base64d))'"
-  else
-    COMMAND="kubectl --context $2 get secret $1 -o json | jq '.data | with_entries(.value |= (. | @base64d))'"
-  fi
-  eval $COMMAND
-}
-
-function move_certs() {
-  if [ -z "$1" ]; then
-    echo "Must provide a cert CN name!"
-    return 1
-  fi
-  if [ -z "$2" ]; then
-    echo "Must provide an env name!"
-  fi
-  COMMAND="ls $1* | sed -e 'p;s/${1}/${1}-${2}/' | xargs -n2 mv"
-  eval $COMMAND
-}
-
 # Auto complete
 source <(stern --completion=zsh)
 
@@ -716,118 +603,6 @@ function typora() {
   fi
 }
 
-function tjira() {
-  if [ -z "$2" ]; then
-    QUERY="--query 'project IN (${1}) AND resolution = unresolved AND status != Closed ORDER BY created'"
-  elif [ "$2" = "all" ]; then
-    QUERY="--query 'project IN (${1}) ORDER BY created'"
-  fi
-}
-export JIRA_PROJECTS="DATA"
-function fjira() {
-  if [ -z "$2" ]; then
-    QUERY="project IN (${1}) AND resolution = unresolved AND status != Closed ORDER BY created"
-  elif [ "$2" = "all" ]; then
-    QUERY="project IN (${1}) ORDER BY created"
-  fi
-  local IFS=$'\n'
-  jira list \
-    --query "${QUERY}" \
-    --template list |\
-  fzf-tmux \
-    --query="$1" \
-    --multi \
-    --select-1 \
-    --preview  "echo {} | cut -d ':' -f 1 |
-      xargs -I % sh -c 'jira view %'" \
-    --bind 'enter:execute/
-      echo {} | cut -d ':' -f 1 |
-      xargs -I % sh -c "jira edit % < /dev/tty"
-      /,Ctrl-t:execute/
-      echo {} | cut -d ':' -f 1 |
-      xargs -I % sh -c "jira take %"
-      /,Ctrl-C:execute/
-      echo {} | cut -d ':' -f 1 |
-      xargs -I % sh -c "jira transition --resolution=Done Resolved % < /dev/tty"
-      /,Ctrl-c:execute/
-      echo {} | cut -d ':' -f 1 |
-      xargs -I % sh -c "jira transition --resolution=Done Done % < /dev/tty"
-      /,Ctrl-s:execute/
-      echo {} | cut -d ':' -f 1 |
-      xargs -I % sh -c "jira transition \"In Dev\" % --noedit"
-      /,Ctrl-S:execute/
-      echo {} | cut -d ':' -f 1 |
-      xargs -I % sh -c "jira transition \"In Progress\" % --noedit"
-      /' \
-    --exit-0
-}
-
-# My tickets
-function mjira() {
-  if [ -z "$2" ]; then
-    QUERY="project IN (${1}) AND assignee = ${JIRA_USER_ID} AND resolution = unresolved AND status != Closed ORDER BY created"
-  elif [ "$2" = "all" ]; then
-    QUERY="project IN (${1}) AND assignee = ${JIRA_USER_ID} ORDER BY created"
-  elif [ -z "$1" ]; then
-    QUERY="assignee = ${JIRA_USER_ID} AND resolution = unresolved AND status != Closed ORDER BY created"
-  fi
-  local IFS=$'\n'
-  jira list \
-    --query "${QUERY}" \
-    --template list |\
-  fzf-tmux \
-    --query="$1" \
-    --multi \
-    --select-1 \
-    --preview  "echo {} | cut -d ':' -f 1 |
-      xargs -I % sh -c 'jira view %'" \
-    --bind 'enter:execute/
-      echo {} | cut -d ':' -f 1 |
-      xargs -I % sh -c "jira edit % < /dev/tty"
-      /,Ctrl-t:execute/
-      echo {} | cut -d ':' -f 1 |
-      xargs -I % sh -c "jira take %"
-      /,Ctrl-C:execute/
-      echo {} | cut -d ':' -f 1 |
-      xargs -I % sh -c "jira transition --resolution=Done Accepted % < /dev/tty"
-      /,Ctrl-c:execute/
-      echo {} | cut -d ':' -f 1 |
-      xargs -I % sh -c "jira transition --resolution=Done Done % < /dev/tty"
-      /,Ctrl-s:execute/
-      echo {} | cut -d ':' -f 1 |
-      xargs -I % sh -c "jira transition \"In Dev\" % --noedit"
-      /,Ctrl-S:execute/
-      echo {} | cut -d ':' -f 1 |
-      xargs -I % sh -c "jira transition \"In Progress\" % --noedit"
-      /' \
-    --exit-0
-}
-
-# Unresolved tickets in current sprint
-function sjira() {
-  QUERY="project = DATA AND assignee = ${JIRA_USER_ID} AND sprint in openSprints() AND resolution = unresolved AND status != Closed ORDER BY created"
-  local IFS=$'\n'
-  jira list \
-    --query "${QUERY}" \
-    --template list |\
-  fzf-tmux \
-    --query="$1" \
-    --multi \
-    --select-1 \
-    --preview  "echo {} | cut -d ':' -f 1 |
-      xargs -I % sh -c 'jira view %'" \
-    --bind 'enter:execute/
-      echo {} | cut -d ':' -f 1 |
-      xargs -I % sh -c "jira edit % < /dev/tty"
-      /,Ctrl-c:execute/
-      echo {} | cut -d ':' -f 1 |
-      xargs -I % sh -c "jira transition --resolution=Done Accepted % < /dev/tty"
-      /,Ctrl-s:execute/
-      echo {} | cut -d ':' -f 1 |
-      xargs -I % sh -c "jira transition \"In Dev\" % --noedit"
-      /' \
-    --exit-0
-}
 
 fjq() {
   local TEMP QUERY
@@ -847,17 +622,12 @@ fjq() {
   [ -n "$QUERY" ] && jq "$QUERY" "$TEMP"
 }
 
-
-function rename_msk() {
-  if [ -z "$1" ]; then
-    echo "Must provide app name!"
-    return 1
+function b64gzip {
+  if [ "$1" == "-d" ]; then
+    echo "$2" | base64 -d | gunzip
+  else
+    echo "$1" | gzip | base64
   fi
-  if [ -z "$2" ]; then
-    echo "Must provide target env name!"
-    return 1
-  fi
-  ls $1.* | sed "p;s/${1}/${1}-${2}/" | xargs -n2 mv
 }
 
 traverse-upwards() {
@@ -900,11 +670,6 @@ function b64gzip {
     echo "$1" | gzip | base64
   fi
 }
-
-##### NOTES #####
-# TO find all files and add specific text at the beginning:
-# perl -0777 -i -pe 's/(.*)/apiVersion: kustomize.config.k8s.io\/v1beta1\nkind: Kustomization\n\1/' path/to/kustomization.yaml
-# find . -name 'kustomization.yaml' | xargs perl -0777 -i -pe 's/(.*)/apiVersion: kustomize.config.k8s.io\/v1beta1\nkind: Kustomization\n\1/'
 
 function s3_import(){
     while [ $# -gt 0 ];
@@ -1014,58 +779,6 @@ function traverse_vault {
   done
 }
 
-# Recursive function that will
-# - List all the secrets in the given $path
-# - Call itself for all path values in the given $path
-function traverse_vault_helper {
-    if [ -z "$1" ]; then
-      echo "You must provide a vault addr as the first arg!"
-      return 1
-    else
-      local VAULT_ADDR="${1}"
-    fi
-    local readonly VAULT_TRAVERSE_PATH="$2"
-
-    RESULT=$(VAULT_ADDR=${VAULT_ADDR} vault kv list -format=json "${VAULT_TRAVERSE_PATH}" 2>&1)
-
-    STATUS=$?
-    if [ ! $STATUS -eq 0 ];
-    then
-      if [[ $RESULT =~ "permission denied" ]]; then
-        return
-      fi
-      >&2 echo "${RESULT}"
-    fi
-
-    for SECRET in $(echo "${RESULT}" | jq -r '.[]'); do
-        if [[ "${SECRET}" == */ ]]; then
-            traverse_vault_helper "${VAULT_TRAVERSE_PATH}${SECRET}"
-        else
-            echo "${VAULT_TRAVERSE_PATH}${SECRET}"
-        fi
-    done
-}
-
-function traverse_vault {
-  if [ -z "$1" ]; then
-    echo "You must provide a vault addr as the first arg!"
-    return 1
-  else
-    local VAULT_ADDR="${1}"
-  fi
-
-  if [[ "$2" ]]; then
-      # Make sure the path always end with '/'
-      VAULTS=("${2%"/"}/")
-  else
-      VAULTS=$(VAULT_ADDR="${VAULT_ADDR}" vault secrets list -format=json | jq -r 'to_entries[] | select(.value.type =="kv") | .key')
-  fi
-
-  for VAULT in $VAULTS; do
-      traverse_vault_helper ${VAULT_ADDR} ${VAULT}
-  done
-}
-
 
 function dc_trace_cmd() {
   local parent=`docker inspect -f '{{ .Parent }}' $1` 2>/dev/null
@@ -1082,14 +795,13 @@ function dc_trace_cmd() {
 # setopt CHASE_LINKS
 # ZSH_DIR=$(dirname "${(%):-%x}")
 ZSH_DIR="$(dirname $(readlink -f "${(%):-%N}"))"
-source "${ZSH_DIR}/.zshrc_alias"
-source "${ZSH_DIR}/.zshrc_aws"
-source "${ZSH_DIR}/.zshrc_env"
-source "${ZSH_DIR}/.zshrc_ldap"
-source "${ZSH_DIR}/.zshrc_secure"
-source "${ZSH_DIR}/.zshrc_tf"
-# unsetopt CHASE_LINKS
-
+awk 'BEGIN{srand(); print srand() "." int(rand()*1000000000)}'
+for FILE in $(ls -a "${ZSH_DIR}"/.* | grep -vE '.zshrc|.zshrc$'); do
+  awk 'BEGIN{srand(); print srand() "." int(rand()*1000000000)}'
+  echo "${FILE}"
+  source "${FILE}"
+done
+awk 'BEGIN{srand(); print srand() "." int(rand()*1000000000)}'
 
 # Completion
 # source <(stern --completion=zsh)

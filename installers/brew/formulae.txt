@@ -1,10 +1,10 @@
-wget
-grep
-gnupg
-sponge
 cloc
-grep
 gnu-sed
+gnupg
 graphviz
+grep
+grep
+sponge
 tmux
 tree
+wget

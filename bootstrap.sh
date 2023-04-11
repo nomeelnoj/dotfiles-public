@@ -20,38 +20,37 @@ get_input_args() {
   POSITIONAL=()
 
   while [ $# -gt 0 ]; do
-    key="$1"
-    case $key in
-    -g | --company-git-domain)
-      COMPANY_GIT_DOMAIN="$2"
-      shift # past argument
-      shift # past value
-      ;;
-    -o | --company-git-org)
-      GIT_ORG="$2"
-      shift # past argument
-      shift # past value
-      ;;
-    -e | --email)
-      COMPANY_EMAIL="$2"
-      shift # past argument
-      shift # past value
-      ;;
-    -d | --debug)
-      # debug everything
-      set -x
-      shift # past argument
-      ;;
-    -h | --help)
-      usage
-      shift # past argument
-      ;;
-    *) # unknown option
-      usage
-      POSITIONAL+=("$1") # save it in an array for later
-      shift              # past argument
-      ;;
-    esac
+  case $key in
+    -g|--company-git-domain)
+    COMPANY_GIT_DOMAIN="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    -o|--company-git-org)
+    GIT_ORG="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    -e|--email)
+    COMPANY_EMAIL="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    -d|--debug)
+    # debug everything
+    set -x
+    shift # past argument
+    ;;
+    -h|--help)
+    usage
+    shift # past argument
+    ;;
+    *)    # unknown option
+    usage
+    POSITIONAL+=("$1") # save it in an array for later
+    shift # past argument
+    ;;
+  esac
   done
 }
 
@@ -69,17 +68,17 @@ confirm() {
   PROMPT="${RED}${MSG} (y/n) ${NC}"
   read -p "$(echo -e $PROMPT)" choice
   case "$choice" in
-  y | Y)
-    echo "Confirmed.  Proceeding..."
-    ;;
-  n | N)
-    echo "Confirmation not received.  Exiting..."
-    [[ "$0" = "$BASH_SOURCE" ]] && exit 1 || return 1
-    ;;
-  *)
-    echo "Invalid choice.  Please enter 'y' or 'n'"
-    confirm
-    ;;
+    y | Y)
+      echo "Confirmed.  Proceeding..."
+      ;;
+    n | N)
+      echo "Confirmation not received.  Exiting..."
+      [[ "$0" = "$BASH_SOURCE" ]] && exit 1 || return 1
+      ;;
+    *)
+      echo "Invalid choice.  Please enter 'y' or 'n'"
+      confirm
+      ;;
   esac
 }
 
@@ -92,11 +91,10 @@ link() {
   elif [ -d "${TO}" ] || [ -f "${TO}" ]; then
     echo "File: ${TO} is not a symbolic link"
     confirm "Are you sure you want to overwrite it? It will be backed up to ${TO}.bak"
-    if [ "$?" -ne 0 ]; then
-      exit 1
-    else
-      mv "${TO}" "${TO}.bak"
-    fi
+  if [ "$?" -ne 0 ]; then
+    exit 1
+  else
+    mv "${TO}" "${TO}.bak"
   fi
   ln -s "${FROM}" "${TO}"
 }
@@ -106,7 +104,7 @@ find_replace() {
 }
 
 install_awscli() {
-  if command -v aws &>/dev/null; then
+  if command -v aws &> /dev/null; then
     echo "You already have this tool installed.  Skipping"
   else
     local TARGET_DIR=$(mktemp -d)
@@ -128,7 +126,7 @@ install_brave() {
 }
 
 install_go() {
-  if command -v go &>/dev/null; then
+  if command -v go &> /dev/null; then
     echo "Golang already installed.  Skipping"
   else
     local TARGET_DIR=$(mktemp -d)
@@ -160,8 +158,15 @@ install_shell_environment() {
   /opt/homebrew/bin/brew tap homebrew/cask-fonts
   /opt/homebrew/bin/brew install --cask font-hack-nerd-font
   /opt/homebrew/bin/brew install --cask font-fira-mono-nerd-font
+}
+
+configure_shell_environment() {
   # Link .zshrc
-  link "${DOTFILE_PATH}/zsh/.zshrc" "${HOME}/.zshrc"
+  # TODO: Convert to .zshrc.d
+  for ZSH_FILE in $(ls -a ${DOTFILE_PATH}/zsh/.*); do
+    RAW_FILE="${ZSH_FILE##*/}"
+    link "${ZSH_FILE}" "${HOME}/${RAW_FILE}"
+  done
   # Set iTerm to store/load settings from custom config path
   defaults write "com.googlecode.iterm2" "NoSyncNeverRemindPrefsChangesLostForFile" '1'
   # Load from file
@@ -224,6 +229,7 @@ configure_system() {
   defaults write "ZoomChat" "ZoomFitXPos" '3874'
   defaults write "ZoomChat" "ZoomFitYPos" '1412'
 
+
   ##############
   ## KEYBOARD ##
   ##############
@@ -284,6 +290,8 @@ configure_system() {
   defaults write com.apple.HIToolbox AppleDictationAutoEnable -int 0
   ### ALFRED ##
   defaults write "com.runningwithcrayons.Alfred-Preferences" "syncfolder" '"~/Dropbox/Alfred"'
+  # Disable the "Are you sure you want to open this application?" dialog
+  # defaults write com.apple.LaunchServices LSQuarantine -bool false
 
   ##################
   ## VIEW OPTIONS ##
@@ -343,6 +351,7 @@ configure_system() {
   # Show desktop with 4 finger spread
   defaults write com.apple.dock showDesktopGestureEnabled -bool true
 
+
   #############
   ## TASKBAR ##
   #############
@@ -378,13 +387,15 @@ configure_system() {
   # activate the settings:
   /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
 
+
   # Restart UI Elements after Changes
   for APP in \
     "Activity Monitor" \
     "SystemUIServer" \
     "Dock" \
-    "Finder"; do
-    killall "${APP}" &>/dev/null
+    "Finder"
+  do
+  killall "${APP}" &> /dev/null
   done
 }
 
@@ -482,20 +493,25 @@ configure_flux() {
 
 link_files() {
 
+  # Setup VIM
   link "${DOTFILE_PATH}/vim/.vim" "${HOME}/.vim"
   link "${DOTFILE_PATH}/vim/.vimrc" "${HOME}/.vimrc"
   git clone https://github.com/hashivim/vim-terraform.git ~/.vim/pack/plugins/start/vim-terraform
   git clone https://github.com/b4b4r07/vim-hcl ~/.vim/pack/plugins/start/vim-hcl
   git clone https://tpope.io/vim/surround.git ~/.vim/pack/plugins/start/surround
 
+  # Set up git config and helpers
   link "${DOTFILE_PATH}/git/git-dyff" '/usr/local/bin/git-dyff'
   link "${DOTFILE_PATH}/git/.gitattributes" "${HOME}/.gitattributes"
   link "${DOTFILE_PATH}/git/.gitignore_global" "${HOME}/.gitignore_global"
   link "${DOTFILE_PATH}/git/.gitconfig" "${HOME}/.gitconfig"
   cp -n "${DOTFILE_PATH}/git/.gitcompany.tpl" "${HOME}/.gitcompany"
+  # Allow for easy installation of gh releases
   link "${DOTFILE_PATH}/git/gh_install_release" '/usr/local/bin/gh_install_release'
   # Custom brew cask installer
   link "${DOTFILE_PATH}/installers/brew/brew_install_cask" '/usr/local/bin/brew_install_cask'
+  # Custom brew formulae installer
+  link "${DOTFILE_PATH}/installers/brew/brew_install_formulae" '/usr/local/bin/brew_install'
   find_replace COMPANY_EMAIL "${COMPANY_EMAIL}" "${HOME}/.gitcompany"
   find_replace COMPANY_GIT_DOMAIN "${COMPANY_GIT_DOMAIN}" "${HOME}/.gitconfig"
   find_replace '(includeIf "gitdir:~/src/)[^"]+' "\1${COMPANT_GIT_DOMAIN}/${GIT_ORG}"
@@ -504,7 +520,7 @@ link_files() {
 }
 
 install_all() {
-  # In case the company sets the sudo timeout to 0, set it to 5 so we can install homebrew without needing to enter
+  # In case the sudo timeout is set to 0, set it to 5 so we can install homebrew without needing to enter
   # our password like 500 times
   # Set sudo timeout to 5 min
   sudo echo "Defaults timestamp_timeout=5" | sudo tee /private/etc/sudoers.d/$USER
@@ -532,6 +548,17 @@ install_all() {
   fi
   rm kubectl*
 
+  # Install Krew
+  (
+    set -x; cd "$(mktemp -d)" &&
+    OS="$(uname | tr '[:upper:]' '[:lower:]')" &&
+    ARCH="$(uname -m | sed -e 's/x86_64/amd64/' -e 's/\(arm\)\(64\)\?.*/\1\2/' -e 's/aarch64$/arm64/')" &&
+    KREW="krew-${OS}_${ARCH}" &&
+    curl -fsSLO "https://github.com/kubernetes-sigs/krew/releases/latest/download/${KREW}.tar.gz" &&
+    tar zxvf "${KREW}.tar.gz" &&
+    ./"${KREW}" install krew
+  )
+
   # Install Docker
   wget https://desktop.docker.com/mac/main/arm64/Docker.dmg -O docker.dmg
   install_dmg docker.dmg
@@ -548,7 +575,6 @@ install_all() {
   install_text_expander
   configure_brave
   configure_better_snap_tool
-  configure_sublime
   configure_copyq
   configure_system
 

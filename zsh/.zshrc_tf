@@ -1,5 +1,21 @@
 export TF_PLUGIN_CACHE_DIR=~/.terraform
 
+function checkov_next() {
+  MOST_RECENT=$(
+    find contrib/checkov/terraform/checks -type f -name '*.py' |\
+      xargs -I {} sh -c "cat {} | grep CKV" |\
+      sort -V |\
+      awk '{print $3}' |\
+      jq -r . |\
+      tail -n 1
+  )
+
+  NUMBER=${MOST_RECENT##*_}
+  INCREMENT=$((NUMBER++))
+  echo "CKV_NVTA_${INCREMENT}"
+
+}
+
 function s3_import() {
  if [ -z "$1" ]; then
    echo "Must enter a bucket name!"
@@ -92,18 +108,36 @@ function tf_list() {
 
 # Vault Helper
 function vault_auth() {
-  URL="${VAULT_ADDR}/v1/auth/ldap/login/${DOMAIN_USERNAME}"
-  echo "Requesting Auth from ${URL}"
-  RESULTS=$(curl \
-    -k \
-    --request POST \
-    --data "{\"password\": \"${DOMAIN_PASSWORD}\"}" \
-    ${URL})
-    # echo ${RESULTS}
-    # echo ${RESULTS} | jq -r 'del(.auth.client_token)'
-    echo ${RESULTS} | jq -r .auth.client_token > $HOME/.vault-token
+  if [ -z "${DOMAIN_USERNAME+x}" ]; then
+    echo "DOMAIN_USERNAME not provided.  Exiting"
+    return 1
+  fi
+  if [ -z "${DOMAIN_PASSWORD+x}" ]; then
+    echo "DOMAIN_PASSWORD not provided.  Prompting for password:"
+    vault login -method=ldap username=${DOMAIN_USERNAME}
+  else
+    URL="${VAULT_ADDR}/v1/auth/ldap/login/${DOMAIN_USERNAME}"
+    VAULT_ENVIRONMENT="${VAULT_ADDR#*.}"
+    VAULT_ENVIRONMENT="${VAULT_ENVIRONMENT%%.*}"
+    echo "Requesting Auth from ${URL}"
+      # -s \
+    RESULTS=$(curl \
+      -k \
+      --request POST \
+      --data "{\"password\": \"${DOMAIN_PASSWORD}\"}" \
+      ${URL})
+      # echo ${RESULTS}
+      # echo ${RESULTS} | jq -r 'del(.auth.client_token)'
+      echo ${RESULTS} | jq -r .auth.client_token > $HOME/.vault-token
+      echo ${RESULTS} | jq -r .auth.client_token > $HOME/.vault-token_${VAULT_ENVIRONMENT}
+  fi
 }
 export -f vault_auth &>/dev/null
+
+##### NOTES #####
+# TO find all files and add specific text at the beginning:
+# perl -0777 -i -pe 's/(.*)/apiVersion: kustomize.config.k8s.io\/v1beta1\nkind: Kustomization\n\1/' resources/admin-tools/overlays/dev/kustomization.yaml
+# find . -name 'kustomization.yaml' | xargs perl -0777 -i -pe 's/(.*)/apiVersion: kustomize.config.k8s.io\/v1beta1\nkind: Kustomization\n\1/'
 
 function s3_import(){
     while [ $# -gt 0 ];

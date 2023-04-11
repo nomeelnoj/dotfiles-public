@@ -1,0 +1,7 @@
+#!/bin/bash
+
+export DOTFILE_PATH="${HOME}/src/github.com/nomeelnoj/dotfiles"
+
+source "${DOTFILE_PATH}/installers/brew/brew_installers.sh"
+
+install_brew_formulae $@
