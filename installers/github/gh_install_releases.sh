@@ -20,21 +20,20 @@ extract_tar_binary() {
 }
 
 # extract_tar_binary() {
-#     local TARGET_DIR="${1}"
-#     local TOOL="${2}"
-#     find $TARGET_DIR -type f -exec bash -c \"
-#         for FILE do
-#             echo \"FILE IS $FILE\"
-#             echo \"TOOL IS $TOOL\"
-#             [[ \"$( file -bI $FILE | cut -d \";\" -f1 )\" != \"application/x-mach-binary\" ]] && continue
-#             chmod +x \"${FILE}\"
-#             mv \"${TARGET_DIR}/${FILE}\" \"/usr/local/bin/${TOOL}\"
-#         done\" bash {} +
+#   local TARGET_DIR="${1}"
+#   local TOOL="${2}"
+#   find $TARGET_DIR -type f -exec bash -c \"
+#     for FILE do
+#       echo \"FILE IS $FILE\"
+#       echo \"TOOL IS $TOOL\"
+#       [[ \"$( file -bI $FILE | cut -d \";\" -f1 )\" != \"application/x-mach-binary\" ]] && continue
+#       chmod +x \"${FILE}\"
+#       mv \"${TARGET_DIR}/${FILE}\" \"/usr/local/bin/${TOOL}\"
+#     done\" bash {} +
 # }
 
-
-
 gh_install_releases() {
+  # set -x
   requirements_check "jq,gh,sponge"
   get_input_args "$@"
   process_args
@@ -49,9 +48,9 @@ gh_install_releases() {
     )
   fi
   for TOOL in $(echo "${RELEASES_FILE_CONTENTS}" | jq -r '. | keys[]'); do
-    if ! jq -r '. | keys[]' "${DOTFILE_PATH}/installers/github/releases.json" | grep -v "${TOOL}"; then
+    if ! jq -r '. | keys[]' "${DOTFILE_PATH}/installers/github/releases.json" | grep -q "${TOOL}"; then
       echo "Adding tool to releases.json"
-      jq --arg tool $1 --arg repo $2 '.[] += {($tool): ($repo)}' "${DOTFILE_PATH}/installers/github/releases.json" |\
+      jq --arg tool $1 --arg repo $2 '. += {($tool): ($repo)}' "${DOTFILE_PATH}/installers/github/releases.json" |\
          sponge "${DOTFILE_PATH}/installers/github/releases.json"
     fi
     if [ "${FORCE}" == "true" ]; then
@@ -109,7 +108,7 @@ gh_install_releases() {
       ;;
       application/zip )
         unzip "${TARGET_DIR}/${DOWNLOADED_RELEASE}" -d "${TARGET_DIR}"
-        extract_tar_binary "${TARGET_DIR}" "${TOOL}"
+        extract_tar_binary "${TARGET_DIR}" "${TOOL}" "${DOWNLOADED_RELEASE}"
       ;;
       application/x-mach-binary ) # If there is no extension, we assume it is already a binary
         chmod +x "${TARGET_DIR}/${DOWNLOADED_RELEASE}"

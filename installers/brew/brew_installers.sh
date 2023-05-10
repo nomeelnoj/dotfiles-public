@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# https://gist.github.com/ChristopherA/a579274536aab36ea9966f301ff14f3f
+
+# Install findutils with brew and then move ggrep to /usr/local/bin/grep
+
 export DOTFILE_PATH="${HOME}/src/github.com/nomeelnoj/dotfiles"
 
 source "${DOTFILE_PATH}/installers/generic/install_helpers.sh"
@@ -16,10 +20,11 @@ install_brew_cask() {
   for PACKAGE in ${@}; do
     # If we install manually using this function, add it to our list for future runs of bootstrap.sh
     if ! grep "${PACKAGE}" "${BREW_CASK_INSTALLS}"; then
-      echo "${PACKAGE}" >> "${INSTALL_TRACKER_FILE}"
+      echo "${PACKAGE}" >>"${BREW_CASK_INSTALLS}"
     fi
-    DOWNLOAD_INFO=$(curl -s "https://formulae.brew.sh/api/cask/${PACKAGE}.json" |\
-      jq -r '[.url, .sha256, (.artifacts[].app | select(. != null)[])] | @tsv'
+    DOWNLOAD_INFO=$(
+      curl -s "https://formulae.brew.sh/api/cask/${PACKAGE}.json" |
+        jq -r '[.url, .sha256, (.artifacts[].app | select(. != null)[])] | @tsv'
     )
     URL=$(echo "${DOWNLOAD_INFO}" | awk -F '\t' '{print $1}')
     SHASUM=$(echo "${DOWNLOAD_INFO}" | awk -F '\t' '{print $2}')
@@ -47,9 +52,18 @@ install_brew_formulae() {
   else
     for PACKAGE in "${@}"; do
       brew list "${PACKAGE}" || brew install "${PACKAGE}"
-        if ! grep "${PACKAGE}" "${BREW_FORMULAE_INSTALLS}"; then
-          echo "${PACKAGE}" >> "${INSTALL_TRACKER_FILE}"
-        fi
+      if ! grep "${PACKAGE}" "${BREW_FORMULAE_INSTALLS}"; then
+        echo "${PACKAGE}" >>"${BREW_FORMULAE_INSTALLS}"
+      fi
     done
+  fi
+}
+
+install_brew_file() {
+  if [ -z "${1}" ]; then
+    echo "No Brewfile provided.  Skipping..."
+  else
+    BREWFILE="${1}"
+    brew bundle install --file="${BREWFILE}"
   fi
 }

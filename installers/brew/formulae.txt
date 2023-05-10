@@ -1,10 +1,13 @@
 cloc
+findutils
+fzf
 gnu-sed
 gnupg
 graphviz
-grep
-grep
 sponge
 tmux
 tree
 wget
+htop
+ripgrep
+diffutils

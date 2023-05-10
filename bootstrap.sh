@@ -419,6 +419,16 @@ configure_brave() {
   cat "${PREFERENCE_FILE}" | jq '.download.prompt_for_download = true' | sponge "${PREFERENCE_FILE}"
   cat "${PREFERENCE_FILE}" | jq '.brave.wallet.show_wallet_icon_on_toolbar = false' | sponge "${PREFERENCE_FILE}"
   cat "${PREFERENCE_FILE}" | jq '.brave.enable_window_closing_confirm = false' | sponge "${PREFERENCE_FILE}"
+  # Set defaults for opening URLs in apps
+  cat "${PREFERENCE_FILE}" | jq '
+  .protocol_handler.allowed_origin_protocol_pairs +=
+  {
+    "https://us02web.zoom.us": {"zoommtg": true},
+    "https://us06web.zoom.us": {"zoommtg": true},
+    "https://www.dropbox.com": {"dropbox-client": true}
+  }' |\
+    sponge "${PREFERENCE_FILE}"
+
   cat "${LOCAL_STATE_FILE}" | jq '.browser.confirm_to_quit = false' | sponge "${LOCAL_STATE_FILE}"
   cat "${LOCAL_STATE_FILE}" | jq '.browser.enabled_labs_experiments = ["password-import@1"]' | sponge "${LOCAL_STATE_FILE}"
   open -a "Brave Browser" --args --make-default-browser
@@ -511,7 +521,7 @@ link_files() {
   # Custom brew cask installer
   link "${DOTFILE_PATH}/installers/brew/brew_install_cask" '/usr/local/bin/brew_install_cask'
   # Custom brew formulae installer
-  link "${DOTFILE_PATH}/installers/brew/brew_install_formulae" '/usr/local/bin/brew_install'
+  link "${DOTFILE_PATH}/installers/brew/brew_install_formulae" '/usr/local/bin/brew_install_formulae'
   find_replace COMPANY_EMAIL "${COMPANY_EMAIL}" "${HOME}/.gitcompany"
   find_replace COMPANY_GIT_DOMAIN "${COMPANY_GIT_DOMAIN}" "${HOME}/.gitconfig"
   find_replace '(includeIf "gitdir:~/src/)[^"]+' "\1${COMPANT_GIT_DOMAIN}/${GIT_ORG}"
@@ -567,6 +577,7 @@ install_all() {
   install_brave
   install_brew_cask $(cat "${DOTFILE_PATH}/installers/brew/casks.txt")
   install_brew_formulae
+  install_brew_file "${DOTFILE_PATH}/installers/brew/Brewfile"
   configure_sublime
   install_shell_environment
   gh_install_releases "${DOTFILE_PATH}/installers/github/releases.json"

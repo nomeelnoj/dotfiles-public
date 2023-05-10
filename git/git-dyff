@@ -96,6 +96,15 @@ case "${TYPE}" in
     git diff --no-ext-diff --no-index \
     "${ORG_FILE_PATH}" "${NEW_FILE_PATH}"
     ;;
+  json )
+    echo -e " ╭─ ${BLUE}${NEW_FILE_PATH}${NC}"
+    dyff --color on --omit-header --detect-kubernetes \
+    between \
+      <(dyff json "${ORG_FILE_PATH}") \
+      <(dyff json "${NEW_FILE_PATH}") ||\
+    git diff --no-ext-diff --no-index \
+    "${ORG_FILE_PATH}" "${NEW_FILE_PATH}"
+    ;;
   * )
     echo "TYPE: '${TYPE}' was unknown defaulting to 'yaml'"
     echo -e " ╭─ ${BLUE}${NEW_FILE_PATH}${NC}"

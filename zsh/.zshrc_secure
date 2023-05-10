@@ -50,4 +50,3 @@ zsh_secure() {
 }
 
 zsh_secure GITHUB_APP_PEM_FILE nomeelnoj pem
-

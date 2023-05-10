@@ -1,0 +1,19 @@
+tap "homebrew/bundle"
+tap "homebrew/cask", "git@github.com:Homebrew/homebrew-cask.git"
+tap "homebrew/cask-fonts", "git@github.com:Homebrew/homebrew-cask-fonts.git"
+tap "homebrew/cask-versions"
+tap "homebrew/core"
+tap "starkandwayne/cf" # Safe
+brew "python@3.9", link: false
+brew "python@3.8", link: false
+brew "glib"
+brew "certbot"
+brew "findutils"
+brew "fzf"
+brew "gnupg"
+brew "graphviz"
+brew "groovy"
+brew "helm", link: false
+brew "operator-sdk"
+brew "python@3.7", link: false
+cask "font-hack-nerd-font"

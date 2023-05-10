@@ -10,6 +10,7 @@ zmodload zsh/zprof # Requires zprof at the end of file to be uncommented
 # export PATH="/opt/homebrew/opt/gnu-sed/libexec/gnubin:$PATH"
 # export PATH="/opt/homebrew/bin:$PATH"
 # export PATH="/Users/$USER/Library/Python/3.9/bin:$PATH"
+export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$HOME/go/bin:$PATH"
 export REPO_ROOT="$HOME/src"
 export GITHUB_REPO_ROOT="${REPO_ROOT}/github.com"
 export BITBUCKET_REPO_ROOT="${REPO_ROOT}/bitbucket.org"
@@ -389,10 +390,6 @@ DISABLE_UNTRACKED_FILES_DIRTY="true"
 plugins=(git fzf)
 
 source $ZSH/oh-my-zsh.sh
-
-# User configuration
-
-export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$HOME/go/bin:$PATH"
 
 # export MANPATH="/usr/local/man:$MANPATH"
 
@@ -804,8 +801,9 @@ done
 awk 'BEGIN{srand(); print srand() "." int(rand()*1000000000)}'
 
 # Completion
-# source <(stern --completion=zsh)
-# command -v flux >/dev/null && . <(flux completion zsh) && compdef _flux flux
+source <(kubectl completion zsh)
+source <(stern --completion=zsh)
+command -v flux >/dev/null && . <(flux completion zsh) && compdef _flux flux
 
 # Make sure PATH is not duplicated
 typeset -U path
