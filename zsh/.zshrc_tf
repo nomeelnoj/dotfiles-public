@@ -246,3 +246,38 @@ function traverse_vault {
       traverse_vault_helper ${VAULT_ADDR} ${VAULT}
   done
 }
+
+function dynamic_vault() {
+  if [ -z "${DOMAIN_USERNAME+x}" ]; then
+    echo "DOMAIN_USERNAME not provided.  Exiting"
+    return 1
+  fi
+  if [ -z "${DOMAIN_PASSWORD+x}" ]; then
+    PROMPT="DOMAIN_PASSWORD not provided.  Enter your domain password: "
+    if [ -n "`$SHELL -c 'echo $ZSH_VERSION'`" ]; then
+      read -s "DOMAIN_PASSWORD?${PROMPT}"
+    elif [ -n "`$SHELL -c 'echo $BASH_VERSION'`" ]; then
+      read -s -p "${PROMPT}" DOMAIN_PASSWORD
+    else
+      echo "Could not determine your shell to properly take password input."
+      echo "Please modify this function or set DOMAIN_PASSWORD before running."
+      return 1
+    fi
+    if [ -z "${DOMAIN_PASSWORD+x}" ]; then
+      echo "DOMAIN_PASSWORD not set and not prompted for.  Exiting."
+      return 1
+    fi
+  fi
+  for ENV in ${COMPANY_ENVS[@]}; do
+    VAULT_ADDR="https://vault.${ENV}.${COMPANY_DOMAIN}"
+    URL="${VAULT_ADDR}/v1/auth/ldap/login/${DOMAIN_USERNAME}"
+    echo "Requesting Auth from ${URL}"
+    RESULTS=$(curl \
+      -k \
+      --request POST \
+      --data "{\"password\": \"${DOMAIN_PASSWORD}\"}" \
+      ${URL}
+    )
+    echo ${RESULTS} | jq -r .auth.client_token > $HOME/.vault-token-${ENV}
+  done
+}

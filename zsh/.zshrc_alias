@@ -19,9 +19,11 @@ alias login-ecr='$(aws ecr get-login --region us-west-2 --no-include-email)'
 alias prod-rds="aws rds describe-db-snapshots --db-instance-identifier db-prod-01 --snapshot-type automated --query \"DBSnapshots[?SnapshotCreateTime>='`date +%Y-%m-%d`'].DBSnapshotIdentifier\""
 
 # Kubectl
-alias kc="kubectl"
+alias fluxall="kubectl get kustomization,imageupdateautomation,imagepolicy,imagerepository,helmrelease,gitrepository,helmrepository"
+alias ing="ingress.v1.networking.k8s.io"
 alias kb="kustomize build"
-alias kcn="kubectl config set-context --current --namespace"
+alias kc="nocorrect kubectl"
+alias kcn="nocorrect kubectl config set-context --current --namespace"
 alias kustom="python3 kustom.py"
 alias update_kustomize='/usr/local/bin/update_kustomize.sh'
 
@@ -54,4 +56,5 @@ alias colordiff="git diff --no-index $1 $2"
 alias fluxall="kubectl get kustomization,imageupdateautomation,imagepolicy,imagerepository,helmrelease,gitrepository,helmrepository"
 alias gh='EDITOR="sublime --wait --new-window" gh'
 alias gpush="git push -u"
-alias ing="ingress.v1.networking.k8s.io"
+alias grep="grep --binary-file=without-match"
+alias hashi_install="${HOME}/src/github.com/nomeelnoj/dotfiles/installers/hashicorp/hashicorp.sh"

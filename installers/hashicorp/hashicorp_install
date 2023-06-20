@@ -1,0 +1,5 @@
+#!/bin/bash
+
+source "${HOME}/src/github.com/nomeelnoj/dotfiles/installers/hashicorp/hashicorp_install.sh"
+
+hashicorp_install $@

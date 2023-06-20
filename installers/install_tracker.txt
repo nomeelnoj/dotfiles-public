@@ -20,3 +20,4 @@ copyq
 istat-menus
 bartender
 flux
+1password-cli

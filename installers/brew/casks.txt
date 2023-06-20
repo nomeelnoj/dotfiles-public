@@ -6,3 +6,4 @@ flux
 istat-menus
 iterm2
 sublime-text
+1password-cli

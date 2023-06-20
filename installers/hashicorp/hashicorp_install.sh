@@ -24,13 +24,27 @@ get_package() {
     rm -rf "${TEMP_DIR}"
 }
 
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+hashicorp_install() {
+    SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+    OLDIFS=$IFS
+    IFS=$'\n'
+    PACKAGES=$(cat "${SCRIPT_DIR}/hashicorp_packages.txt")
 
-OLDIFS=$IFS
-IFS=$'\n'
-PACKAGES=$(cat "${SCRIPT_DIR}/hashicorp_packages.txt")
+    if [ -z "${1}" ]; then
+        for PACKAGE in ${PACKAGES}; do
+            IFS=$OLDIFS
+            get_package $PACKAGE
+        done
+        exit 0
+    else
+        if [ -z "${2}" ]; then
+            VERSION=latest
+        else
+            VERSION="${2}"
+        fi
+        get_package "${1}" "${VERSION}"
+    fi
+}
 
-for PACKAGE in ${PACKAGES}; do
-    IFS=$OLDIFS
-    get_package $PACKAGE
-done
+hashicorp_install
+

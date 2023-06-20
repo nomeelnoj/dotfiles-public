@@ -31,6 +31,12 @@ DEFAULT_USER="${USER}"
 # POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(virtualenv kubecontext)
 # POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(context dir vcs)
 #POWERLEVEL9K_VCS_GIT_BITBUCKET_ICON="\uE703"
+function reset_termina() {
+  stty sane
+}
+function timeout() {
+  perl -e 'alarm shift; exec @ARGV' "$@"
+}
 
 function cclip() {
   while read line; do
@@ -453,9 +459,45 @@ function gdrive_download() {
 }
 
 function git_clone() {
+  # if [[ "${1}" = *"git@github.com"* ]]; then
+  #   URL="${1}"
+  #   if ! [[ "${1}" = *".git"* ]]; then
+  #     URL="${1}.git"
+  #   fi
+  URL="${1}"
+  URL="${URL%.*}"
+  CLEANED_URL=$(echo "${URL}" | awk -F ':' '{print $NF}')
+  REPO=$(basename "${CLEANED_URL}")
+  ORG=$(basename $(dirname "${CLEANED_URL}"))
+  # TLD=$(basename $(dirname $(dirname "${1}")))
+  DOMAIN=$(echo "${URL}" | awk -F '@' '{print $2}' | awk -F ':' '{print $1}s')
+  # else
+  #   REPO=$(basename "${1}")
+  #   ORG=$(basename $(dirname "${1}"))
+  #   DOMAIN="github.com"
+  #   URL="git@github.com:${1}.git"
+  # fi
+  DIR="${HOME}/src/${DOMAIN}/${ORG}/${REPO}"
+  if [ -d "${DIR}" ]; then
+    echo "Repo ${1} already exists at '${DIR}'"
+  else
+    mkdir -p "${DIR}"
+    git clone "${URL}" "${DIR}"
+    if [ "$?" -ne 0 ]; then
+      echo "Clone failed"
+      rm -r "${DIR}"
+    fi
+  fi
+  cd ${DIR}
+}
+
+function git_clone_backup() {
+  set -x
   if [[ "${1}" = *"git@github.com"* ]]; then
-    if ! [[ "${1}" = *".git"* ]]; then
-      URL="${1}.git"
+    URL="${1}"
+    if ! [[ "${URL}" = *".git"* ]]; then
+      echo "entered second"
+      URL="${URL}.git"
     fi
     URL="${URL%.*}"
     CLEANED_URL=$(echo "${URL}" | awk -F ':' '{print $NF}')
@@ -591,6 +633,31 @@ function greb() {
     git fetch origin && git rebase origin/${REMOTE}
 }
 
+function confirm() {
+    RED='\033[0;31m'
+    NC='\033[0m' # no color
+    PROMPT="${RED}Are you sure you want to continue (y/n)? ${NC}"
+    echo -e $PROMPT
+    read choice
+    case "$choice" in
+      y|Y )
+        echo "Confirmed.  Proceeding..."
+        ;;
+      n|N )
+        echo "Confirmation not received.  Exiting..."
+        return 1
+        ;;
+      * ) echo "Invalid choice.  Please enter 'y' or 'n'"
+        confirm
+        ;;
+    esac
+}
+
+export -f confirm &> /dev/null
+
+  #jira list \
+    #--query "project IN (${JIRA_PROJECTS}) AND resolution = unresolved AND status != Closed ORDER BY created" \
+
 # Typora
 function typora() {
   if [ "$#" -eq 0 ]; then
@@ -658,14 +725,6 @@ function kubectlgetall {
     echo "Resource:" $i
     kubectl get --ignore-not-found ${i} -A -o yaml >> $1
   done
-}
-
-function b64gzip {
-  if [ "$1" == "-d" ]; then
-    echo "$2" | base64 -d | gunzip
-  else
-    echo "$1" | gzip | base64
-  fi
 }
 
 function s3_import(){
@@ -788,9 +847,49 @@ function dc_trace_cmd() {
   fi
 }
 
-### SOURCE OTHER FILES ###
-# setopt CHASE_LINKS
-# ZSH_DIR=$(dirname "${(%):-%x}")
+function gh_get_org_users() {
+  local QUERY=$(cat <<EOF
+  query(\$endCursor: String) {
+    organization(login: "${GITHUB_ORG}") {
+      samlIdentityProvider {
+        ssoUrl
+        externalIdentities (first: 100, after: \$endCursor) {
+          edges {
+            node {
+              guid
+              samlIdentity {
+                nameId
+              }
+              user {
+                login
+              }
+            }
+          }
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
+        }
+      }
+    }
+  }
+EOF
+  )
+  gh api graphql --paginate -f query="${QUERY}"
+}
+
+
+function gam_user_groups() {
+  local EMAIL="${1}"
+  if [ -z "${EMAIL}" ]; then
+    echo "No user email provided."
+    return 1
+  fi
+  gam3 print groups member $1
+}
+### SOURCE OTHER ZSHRC FILES ###
+# Timings, its been slow recently
+awk 'BEGIN{srand(); print srand() "." int(rand()*1000000000)}'
 ZSH_DIR="$(dirname $(readlink -f "${(%):-%N}"))"
 awk 'BEGIN{srand(); print srand() "." int(rand()*1000000000)}'
 for FILE in $(ls -a "${ZSH_DIR}"/.* | grep -vE '.zshrc|.zshrc$'); do
@@ -842,3 +941,9 @@ export PATH="$HOME/go/bin:/usr/local/go/bin:/opt/homebrew/opt/grep/libexec/gnubi
 # HELPER JQ FUNCTIONS
 # # .module | to_entries[] | .key as $key | .value[] | select(.source | endswith("iam_role")) | {key: $key, value: .assume_role_policies}
 # # .module | to_entries[] | .key as $key | .value[] | select(.source | endswith("iam_role")) | {($key): has("assume_role_policies")}
+
+# The next line updates PATH for the Google Cloud SDK.
+if [ -f '/Users/jleemon/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/jleemon/google-cloud-sdk/path.zsh.inc'; fi
+
+# The next line enables shell command completion for gcloud.
+if [ -f '/Users/jleemon/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/jleemon/google-cloud-sdk/completion.zsh.inc'; fi

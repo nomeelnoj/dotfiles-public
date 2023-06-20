@@ -430,7 +430,8 @@ configure_brave() {
     sponge "${PREFERENCE_FILE}"
 
   cat "${LOCAL_STATE_FILE}" | jq '.browser.confirm_to_quit = false' | sponge "${LOCAL_STATE_FILE}"
-  cat "${LOCAL_STATE_FILE}" | jq '.browser.enabled_labs_experiments = ["password-import@1"]' | sponge "${LOCAL_STATE_FILE}"
+  cat "${LOCAL_STATE_FILE}" | jq '.browser.enabled_labs_experiments += ["password-import@1", "download-bubblle-v2@2", "download-bubble@2"]' | sponge "${LOCAL_STATE_FILE}"
+  cat "${LOCAL_STATE_FILE}" | jq '.performance_tuning.high_efficiency_mode.enabled = true' | sponge "${LOCAL_STATE_FILE}"
   open -a "Brave Browser" --args --make-default-browser
   echo "There are some settings that cannot be easily set from the CLI"
   echo "Do not forget to import your bookmarks, passwords, and set the default search engine"
@@ -518,6 +519,8 @@ link_files() {
   cp -n "${DOTFILE_PATH}/git/.gitcompany.tpl" "${HOME}/.gitcompany"
   # Allow for easy installation of gh releases
   link "${DOTFILE_PATH}/git/gh_install_release" '/usr/local/bin/gh_install_release'
+  # Allow for easy installation of hashi packages
+  link "${DOTFILE_PATH}/installers/hashicorp/hashicorp_install" '/usr/local/bin/hashicorp_install'
   # Custom brew cask installer
   link "${DOTFILE_PATH}/installers/brew/brew_install_cask" '/usr/local/bin/brew_install_cask'
   # Custom brew formulae installer

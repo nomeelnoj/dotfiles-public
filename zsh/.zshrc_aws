@@ -263,3 +263,24 @@ function validate_aws_credentials() {
 
 # Non-function lines
 alias aws="aws --no-cli-pager"
+
+aws_lookup() {
+  AWS_ACCOUNT="${1}"
+  if [[ -z ${AWS_ACCOUNT//[[:digit:]]} ]]; then
+    AWS_PROFILE=$(yq -e \
+      ".[] | select(.id == \"${AWS_ACCOUNT}\") | path | key" \
+       "${HOME}/.aws/sso_accounts.yaml"
+    )
+  else
+    AWS_PROFILE=$(yq -e \
+      ".[] | select(key == \"${AWS_ACCOUNT}\").id" \
+       "${HOME}/.aws/sso_accounts.yaml")
+  fi
+
+  echo "${AWS_PROFILE}"
+
+  SET_ENV="${2}"
+  if [[ "${SET_ENV}" == '--env' ]]; then
+    export AWS_PROFILE="${AWS_PROFILE}"
+  fi
+}
