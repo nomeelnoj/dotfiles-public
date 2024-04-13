@@ -58,3 +58,7 @@ alias gh='EDITOR="sublime --wait --new-window" gh'
 alias gpush="git push -u"
 alias grep="grep --binary-file=without-match"
 alias hashi_install="${HOME}/src/github.com/nomeelnoj/dotfiles/installers/hashicorp/hashicorp.sh"
+alias cd7="cd ../../../../../../../"
+alias fx="nocorrect fx"
+alias vi="nvim"
+alias ghc="GITHUB_TOKEN= gh copilot"

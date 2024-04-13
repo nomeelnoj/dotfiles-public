@@ -31,12 +31,13 @@ DEFAULT_USER="${USER}"
 # POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(virtualenv kubecontext)
 # POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(context dir vcs)
 #POWERLEVEL9K_VCS_GIT_BITBUCKET_ICON="\uE703"
-function reset_termina() {
+function reset_terminal() {
   stty sane
 }
 function timeout() {
   perl -e 'alarm shift; exec @ARGV' "$@"
 }
+
 
 function cclip() {
   while read line; do
@@ -397,7 +398,17 @@ plugins=(git fzf)
 
 source $ZSH/oh-my-zsh.sh
 
+# Custom overrides for oh-my-zsh
+# History settings normally set in ~/.oh-my-zsh/lib/history.zsh
+# History settings
+export HISTFILESIZE=1000000
+export HISTSIZE=1000000
+export SAVEHIST=1000000
+
 # export MANPATH="/usr/local/man:$MANPATH"
+# gh copilot extension aliases
+# eval "$(gh copilot alias -- zsh)"
+
 
 # You may need to manually set your language environment
 # export LANG=en_US.UTF-8
@@ -887,23 +898,63 @@ function gam_user_groups() {
   fi
   gam3 print groups member $1
 }
+
+function disable_umbrella() {
+  sudo launchctl unload /Library/LaunchDaemons/com.cisco.secureclient.vpnagentd.plist
+}
+
+#This section fixes the "my keyboard and mouse dont work on server 2022" in AWS SSM
+#aws tools for powershell
+#powershell -c "$null = Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Confirm:$false"
+#powershell -c "$null = Save-Module -Name PowerShellGet -Path 'C:\Program Files\WindowsPowerShell\Modules' -Force -Confirm:$false"
+#powershell -c "$null = Install-Module -Name PSReadLine -Scope AllUsers -Force -Confirm:$false"
+#
+#
+#$null = Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Confirm:$false
+#$null = Save-Module -Name PowerShellGet -Path "C:\Program Files\WindowsPowerShell\Modules" -Force -Confirm:$false
+#powershell -c '$null = Install-Module -Name PSReadLine -Scope AllUsers -Force -Confirm:$false'
+
+# #function expand-multiple-dots() {
+#    local MATCH
+#    if [[ $LBUFFER =~ '(^| )\.\.\.+' ]]; then
+#        LBUFFER=$LBUFFER:fs%\.\.\.%../..%
+#    fi
+#}
+#
+#function expand-multiple-dots-then-expand-or-complete() {
+#    zle expand-multiple-dots
+#    zle expand-or-complete
+#}
+#
+#function expand-multiple-dots-then-accept-line() {
+#    zle expand-multiple-dots
+#    zle accept-line
+#}
+#
+#zle -N expand-multiple-dots
+#zle -N expand-multiple-dots-then-expand-or-complete
+#zle -N expand-multiple-dots-then-accept-line
+#bindkey '^I' expand-multiple-dots-then-expand-or-complete
+#bindkey '^M' expand-multiple-dots-then-accept-line
+# autoload -Uz manydots-magic
+# manydots-magic
+
 ### SOURCE OTHER ZSHRC FILES ###
-# Timings, its been slow recently
-awk 'BEGIN{srand(); print srand() "." int(rand()*1000000000)}'
+# awk 'BEGIN{srand(); print srand() "." int(rand()*1000000000)}'
+# TODO: replace with https://github.com/mattmc3/zshrc.d
 ZSH_DIR="$(dirname $(readlink -f "${(%):-%N}"))"
-awk 'BEGIN{srand(); print srand() "." int(rand()*1000000000)}'
-for FILE in $(ls -a "${ZSH_DIR}"/.* | grep -vE '.zshrc|.zshrc$'); do
-  awk 'BEGIN{srand(); print srand() "." int(rand()*1000000000)}'
-  echo "${FILE}"
+# awk 'BEGIN{srand(); print srand() "." int(rand()*1000000000)}'
+for FILE in $(ls -a "${ZSH_DIR}"/.* | grep -vE '.zshrc$'); do
+  # awk 'BEGIN{srand(); print srand() "." int(rand()*1000000000)}'
+  # echo "${FILE}"
   source "${FILE}"
 done
-awk 'BEGIN{srand(); print srand() "." int(rand()*1000000000)}'
+# awk 'BEGIN{srand(); print srand() "." int(rand()*1000000000)}'
 
 # Completion
-source <(kubectl completion zsh)
-source <(stern --completion=zsh)
-command -v flux >/dev/null && . <(flux completion zsh) && compdef _flux flux
-
+#source <(kubectl completion zsh)
+#source <(stern --completion=zsh)
+#command -v flux >/dev/null && . <(flux completion zsh) && compdef _flux flux
 # Make sure PATH is not duplicated
 typeset -U path
 
@@ -943,7 +994,7 @@ export PATH="$HOME/go/bin:/usr/local/go/bin:/opt/homebrew/opt/grep/libexec/gnubi
 # # .module | to_entries[] | .key as $key | .value[] | select(.source | endswith("iam_role")) | {($key): has("assume_role_policies")}
 
 # The next line updates PATH for the Google Cloud SDK.
-if [ -f '/Users/jleemon/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/jleemon/google-cloud-sdk/path.zsh.inc'; fi
+if [ -f "${HOME}/google-cloud-sdk/path.zsh.inc" ]; then . "${HOME}/google-cloud-sdk/path.zsh.inc"; fi
 
 # The next line enables shell command completion for gcloud.
-if [ -f '/Users/jleemon/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/jleemon/google-cloud-sdk/completion.zsh.inc'; fi
+if [ -f "${HOME}/google-cloud-sdk/completion.zsh.inc" ]; then . "${HOME}/google-cloud-sdk/completion.zsh.inc"; fi

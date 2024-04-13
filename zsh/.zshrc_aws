@@ -1,3 +1,6 @@
+# Command completion
+complete -C '/usr/local/bin/aws_completer' aws
+
 function assume_role() {
   if [ -z "$3" ]; then
     echo "No role session name provided in \$3, using 'default'"
@@ -7,6 +10,51 @@ function assume_role() {
   export AWS_ACCESS_KEY_ID=$(echo $ASSUME_ROLE | jq -r '.Credentials.AccessKeyId')
   export AWS_SECRET_ACCESS_KEY=$(echo $ASSUME_ROLE | jq -r '.Credentials.SecretAccessKey')
   export AWS_SESSION_TOKEN=$(echo $ASSUME_ROLE | jq -r '.Credentials.SessionToken')
+}
+
+function aws_account_names() {
+  aws resourcegroupstaggingapi get-tag-values --key AwsProfile --profile "${AWS_ORG_PAYER}"
+}
+
+get_instances_by_ip() {
+  local AWS_PROFILE="default"
+  IP_ADDRESS="${1}"
+  if [ -z "${2}" ]; then
+    echo "No profile used, using default profile."
+    echo "Pass an AWS profile in as the second argument to use it."
+    AWS_PROFILE="${2}"
+  fi
+  aws ec2 describe-instances \
+    --profile "${AWS_PROFILE}" |\
+    jq --arg ip "${IP_ADDRESS}" '
+      [
+        .[][].Instances[]
+        | select(.PrivateIpAddress == "\($ip)")
+        | {
+             "InstanceId": .InstanceId,
+             "InstanceType": .InstanceType,
+             "State": .State.Name,
+             "Tags": (.Tags | from_entries)
+          }
+      ]
+      '
+}
+
+function aws_accounts_and_names() {
+  for ACCOUNT_ID in $(aws organizations list-accounts --profile "${AWS_ORG_PAYER}" | jq -r '.Accounts[].Id'); do
+    PROFILE_NAME=$(
+      aws organizations \
+      list-tags-for-resource \
+      --resource-id "${ACCOUNT_ID}" \
+      --profile "${AWS_ORG_PAYER}" |\
+      jq -r '
+        .Tags[]
+          | select(.Key == "AwsProfile")
+          | .Value
+      '
+    )
+    echo "${ACCOUNT_ID},${PROFILE_NAME}"
+  done
 }
 
 function aws_decode() {
@@ -54,7 +102,7 @@ while read LINE; do
     if [[ "${LINE}" =~ ^\".*\"$ ]] || [[ "${LINE}" =~ ^\".*\",$ ]]; then
       RAW=""
     fi
-    RESULTS=$(cat "${DIR_PATH}/iam_definition.json" |\
+    RESULTS=$(cat "${DIR_PATH}/aws/iam_definition.json" |\
       jq \
         ${RAW} \
         --arg prefix "${PREFIX}" \
@@ -133,6 +181,59 @@ function get_dns_records() {
         end)
       '
 }
+
+function get_instances() {
+  if [ -z "${1+x}" ]; then
+    echo "Must provide instance Name regex search term as first arg!"
+    return 1
+  fi
+  if [ -z "${2+x}" ]; then
+    echo "Second arg as AWS_PROFILE not provided, using env var or default profile..."
+  fi
+  local SEARCH="${1}"
+  local AWS_PROFILE="${2:-$AWS_PROFILE}"
+  aws ec2 describe-instances --profile $AWS_PROFILE |\
+    jq --arg search "${SEARCH}" '
+      [
+        .[][].Instances[]
+        | select(.Tags[]
+        | select(.Key == "Name" and
+          (
+            .Value | test("\($search)")
+          )
+        )
+      )
+    ]'
+}
+
+function get_instances_tags() {
+  if [ -z "${1+x}" ]; then
+    echo "No AWS profile provided as first arg.  Using default..."
+    local LOCAL_AWS_PROFILE="default"
+  else
+    local LOCAL_AWS_PROFILE="${1}"
+  fi
+  AWS_PROFILE="${LOCAL_AWS_PROFILE}" \
+    aws ec2 describe-instances \
+    --filters Name=instance-state-name,Values=running |\
+    jq '
+      [
+        .Reservations[].Instances[]
+        | (
+            if .Tags? then reduce (
+              .Tags[] | {(.Key): (.Value)}
+              ) as $item ({}; . + $item) else {} end
+          ) +
+          {
+            "PublicIp": (.PublicIpAddress // null),
+            "PrivateIp": .PrivateIpAddress,
+            "InstanceId": .InstanceId,
+            "InstanceType": .InstanceType
+          }
+       ]
+     '
+}
+
 
 function get_me_creds() {
   aws sso get-role-credentials \
@@ -283,4 +384,68 @@ aws_lookup() {
   if [[ "${SET_ENV}" == '--env' ]]; then
     export AWS_PROFILE="${AWS_PROFILE}"
   fi
+}
+
+get_abac_tags() {
+  if [ -z "${1}" ]; then
+    echo "Must provide an account name for AWS profile!!!"
+    return 1
+  fi
+  aws --profile "${1}" \
+  cloudtrail \
+  lookup-events \
+  --start-time $(date -v-1d -u +%Y-%m-%dT%H:%M:%SZ) \
+  --lookup-attributes AttributeKey=EventName,AttributeValue=AssumeRoleWithSAML |\
+  jq '
+    [
+      .Events |
+      sort_by(.EventTime) |
+      reverse
+    ][] |
+    reduce .[] as $event (
+      {}; .[$event.Username] = ($event.CloudTrailEvent
+        | fromjson
+        | .requestParameters.principalTags
+      )
+    )
+  '
+}
+
+aws_rds_aurora_versions() {
+  ENGINES="${1}"
+  CLASSES="${2}"
+  if [[ "${ENGINES}" == '' ]]; then
+    ENGINES=(
+      'aurora-mysql'
+      'aurora-postgresql'
+    )
+    echo "Default ENGINES used '${ENGINES[*]}'"
+  fi
+
+  if [[ "${CLASSES}" == '' ]]; then
+    CLASSES=(
+      'db.serverless'
+      'db.t4g.medium'
+    )
+    echo "Default CLASSES used '${CLASSES[*]}'"
+  fi
+
+  for CLASS in "${CLASSES[@]}"; do
+    for ENGINE in "${ENGINES[@]}"; do
+      echo "Getting Results for '${ENGINE}' for '${CLASS}'"
+      echo -e "EngineVersion\tStorageType"
+      aws rds \
+        describe-orderable-db-instance-options \
+        --engine "${ENGINE}" \
+        --db-instance-class "${CLASS}" \
+        --query 'OrderableDBInstanceOptions[]' \
+        --output json |\
+       jq -r '
+         .[] | [
+           .EngineVersion,
+           .StorageType
+         ] | @tsv'
+
+    done
+  done
 }

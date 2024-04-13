@@ -65,6 +65,19 @@ ldap_public_key() {
   cut -d " " -f2-
 }
 
+ldap_membership_recursive() {
+  ldapsearch \
+    -o ldif-wrap=no \
+    -H "ldaps://${DOMAIN_CONTROLLER}:636" \
+    -D "${DOMAIN_DN}" \
+    -w "${DOMAIN_PASSWORD}" \
+    -b "${DOMAIN_ROOT}" \
+    "(&(memberOf:1.2.840.113556.1.4.1941:=CN=$1,OU=Groups,${DOMAIN_ROOT}))" member \
+    | grep -E '(dn|member)' \
+    | sed -E 's/(dn|member): //g' \
+    | sort -u
+}
+
 # TO DO: Work out the kinks in replacing the above with the below generic function
 ldap_query() {
   set -x
@@ -108,3 +121,13 @@ ldap_query() {
 # ldap_group() { ldap_query '' 'member' "(&(cn=$1))" }
 # ldap_public_key() { ldap_query "${1}" 'sshPublicKey' }
 # ldap_email() { ldap_query '' "'mail' 'sAMAccountName' 'name'" "(&(cn=*)(mail=$1))" }
+
+ldap_group_recursive() {
+  DN=$( ldap_query '' 'dn' "(&(cn=$1))" )
+  CN=$( echo $1 && ldap_query '' 'cn' "(&(objectClass=group)(memberOf:1.2.840.113556.1.4.1941:=${DN}))" )
+  for CN in ${CN}; do
+    echo "GROUP: ${CN}"
+    ldap_group "${CN}"
+  done
+}
+

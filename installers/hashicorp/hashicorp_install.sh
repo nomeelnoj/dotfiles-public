@@ -45,6 +45,3 @@ hashicorp_install() {
         get_package "${1}" "${VERSION}"
     fi
 }
-
-hashicorp_install
-

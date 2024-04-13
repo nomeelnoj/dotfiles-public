@@ -163,10 +163,11 @@ install_shell_environment() {
 configure_shell_environment() {
   # Link .zshrc
   # TODO: Convert to .zshrc.d
-  for ZSH_FILE in $(ls -a ${DOTFILE_PATH}/zsh/.*); do
+  for ZSH_FILE in $(ls -a ${DOTFILE_PATH}/zsh/.zshrc*); do
     RAW_FILE="${ZSH_FILE##*/}"
     link "${ZSH_FILE}" "${HOME}/${RAW_FILE}"
   done
+  link ${DOTFILE_PATH}/zsh/functions $HOME/.oh-my-zsh/functions
   # Set iTerm to store/load settings from custom config path
   defaults write "com.googlecode.iterm2" "NoSyncNeverRemindPrefsChangesLostForFile" '1'
   # Load from file
@@ -502,14 +503,25 @@ configure_flux() {
   defaults write org.herf.Flux wakeTime -int 510
 }
 
+download_neovim() {
+  wget https://github.com/neovim/neovim/releases/download/v0.9.5/nvim-macos.tar.gz -O nvim-mac.tar.gz
+  tar zxf nvim-mac.tar.gz
+  mv nvim-macos /usr/local/bin
+  link /usr/local/bin/nvim-macos/bin/nvim /usr/local/bin
+}
+
 link_files() {
 
   # Setup VIM
   link "${DOTFILE_PATH}/vim/.vim" "${HOME}/.vim"
   link "${DOTFILE_PATH}/vim/.vimrc" "${HOME}/.vimrc"
-  git clone https://github.com/hashivim/vim-terraform.git ~/.vim/pack/plugins/start/vim-terraform
-  git clone https://github.com/b4b4r07/vim-hcl ~/.vim/pack/plugins/start/vim-hcl
-  git clone https://tpope.io/vim/surround.git ~/.vim/pack/plugins/start/surround
+  git clone https://github.com/hashivim/vim-terraform.git "${HOME}/.vim/pack/plugins/start/vim-terraform"
+  git clone https://github.com/b4b4r07/vim-hcl "${HOME}/.vim/pack/plugins/start/vim-hcl"
+  git clone https://tpope.io/vim/surround.git "${HOME}/.vim/pack/plugins/start/surround"
+
+  # Setup Neovim
+  link "${DOTFILE_PATH}/config/nvim" "${HOME}/.config/nvim"
+  download_neovim
 
   # Set up git config and helpers
   link "${DOTFILE_PATH}/git/git-dyff" '/usr/local/bin/git-dyff'
@@ -520,7 +532,7 @@ link_files() {
   # Allow for easy installation of gh releases
   link "${DOTFILE_PATH}/git/gh_install_release" '/usr/local/bin/gh_install_release'
   # Allow for easy installation of hashi packages
-  link "${DOTFILE_PATH}/installers/hashicorp/hashicorp_install" '/usr/local/bin/hashicorp_install'
+  link "${DOTFILE_PATH}/installers/hashicorp/hashicorp_cli_install" '/usr/local/bin/hashicorp_cli_install'
   # Custom brew cask installer
   link "${DOTFILE_PATH}/installers/brew/brew_install_cask" '/usr/local/bin/brew_install_cask'
   # Custom brew formulae installer
@@ -530,6 +542,12 @@ link_files() {
   find_replace '(includeIf "gitdir:~/src/)[^"]+' "\1${COMPANT_GIT_DOMAIN}/${GIT_ORG}"
   /opt/homebrew/opt/gnu-sed/libexec/gnubin/sed -i "s|COMPANY_EMAIL|${COMPANY_EMAIL}|g" "${HOME}/.gitcompany"
   /opt/homebrew/opt/gnu-sed/libexec/gnubin/sed -i "s|COMPANY_GIT_ORG|${COMPANY_GIT_ORG}|g" "${HOME}/.gitconfig"
+  link "${DOTFILE_PATH}"/bin/orbital.sh /usr/local/bin/orbital
+}
+
+clone_private_dotfiles_and_run()  {
+  git clone git@github.com:nomeelnoj/dotfiles-private.git "${HOME}/src/github.com/nomeelnoj/dotfiles-private"
+  bash "${HOME}/src/github.com/nomeelnoj/dotfiles-private/bootstrap.sh"
 }
 
 install_all() {
@@ -581,6 +599,7 @@ install_all() {
   install_brew_cask $(cat "${DOTFILE_PATH}/installers/brew/casks.txt")
   install_brew_formulae
   install_brew_file "${DOTFILE_PATH}/installers/brew/Brewfile"
+  hashicorp_install
   configure_sublime
   install_shell_environment
   gh_install_releases "${DOTFILE_PATH}/installers/github/releases.json"
@@ -598,8 +617,19 @@ install_all() {
   # # Install go-jira
   /usr/local/go/bin/go install github.com/go-jira/jira/cmd/jira@latest
 
-  # # Install hashicorp tools
-  ${DOTFILE_PATH}/installers/hashicorp/hashicorp.sh
+  # Install other go stuffs
+  /usr/local/go/bin/go install github.com/hashicorp/terraform-ls@latest
+  /usr/local/go/bin/go install github.com/juliosueiras/terraform-lsp@master
+  /usr/local/go/bin/go install github.com/wader/jq-lsp@master
+  /usr/local/go/bin/go install golang.org/x/tools/gopls@latest
+  /usr/local/go/bin/go install github.com/rust-lang/rust-analyzer@master
+  # If you do not want to use brew, you need a wrapper script
+  # brew install lua-language-server
+  echo "DO NOT FORGET TO INSTALL LUA-LANGUAGE-SERVER! https://github.com/LuaLS/lua-language-server"
+  cat << EOF
+#!/bin/bash
+exec "<path-to-directory>/bin/lua-language-server" "$@"
+EOF
 
   # Set up our symlinks
   link_files
@@ -619,27 +649,29 @@ verify_input_args
 sudo -vB
 source "${DOTFILE_PATH}/installers/generic/install_helpers.sh"
 source "${DOTFILE_PATH}/installers/github/gh_install_releases.sh"
-source "${DOTFILE_PATH}/installers/brew/brew_installer.sh"
+source "${DOTFILE_PATH}/installers/brew/brew_installers.sh"
+source "${DOTFILE_PATH}/installers/hashicorp/hashicorp_install.sh"
 
 install_all
 
-echo "###########################################################"
-echo "#####         AUTOMATED INSTALLATION COMPLETE         #####"
-echo "###########################################################"
-echo "There are still a few things to do to get your environment "
-echo "setup properly:"
-echo ""
-echo "- Set slack sidebar theme:"
-echo "#303E4D,#31556E,#61aa9f,#FFFFFF,#4A5664,#FFFFFF,#afce76,#78AF8F,#31556E,#FFFFFF"
-echo ""
-echo "- Set brave search engine default to Google"
-echo ""
-echo "- Configure licenses for:"
-echo "   - Alfred"
-echo "   - Sublime Text"
-echo "   - iStat Menus"
-echo "   - TextExpander"
-echo ""
+cat << EOF
+###########################################################
+#####         AUTOMATED INSTALLATION COMPLETE         #####
+###########################################################
+There are still a few things to do to get your environment
+setup properly:
+
+- Set slack sidebar theme:
+#303E4D,#31556E,#61aa9f,#FFFFFF,#4A5664,#FFFFFF,#afce76,#78AF8F,#31556E,#FFFFFF
+
+- Set brave search engine default to Google
+
+- Configure licenses for:
+   - Alfred
+   - Sublime Text
+   - iStat Menus
+   - TextExpander
+EOF
 read -p "Press enter when you are done"
 
 # Logout to apply changes

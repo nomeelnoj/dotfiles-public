@@ -12,3 +12,5 @@ ripgrep
 sponge
 tmux
 tree
+pv
+pigz

@@ -4,8 +4,6 @@ export DOTFILE_PATH="${HOME}/src/github.com/nomeelnoj/dotfiles"
 
 source "${DOTFILE_PATH}/installers/generic/install_helpers.sh"
 
-INSTALL_TRACKER_FILE="${DOTFILE_PATH}/installers/install_tracker.txt"
-
 extract_tar_binary() {
   local TARGET_DIR="${1}"
   local TOOL="${2}"
@@ -33,24 +31,32 @@ extract_tar_binary() {
 # }
 
 gh_install_releases() {
-  # set -x
+  set -x
   requirements_check "jq,gh,sponge"
   get_input_args "$@"
   process_args
   if [ -f "${1}" ]; then
-    RELEASES_FILE_CONTENTS=$(cat "${1}")
+      RELEASES_FILE_CONTENTS=$(cat "${1}")
   else
-    RELEASES_FILE_CONTENTS=$(
-      jq --null-input \
-      --arg tool $1 \
-      --arg repo $2 \
-      '{($tool): ($repo)}'
-    )
+      if [ -z "${2+x}" ]; then
+          echo "You must provide the tool and github repo as two separate args!!!"
+          exit 1
+      fi
+      RELEASES_FILE_CONTENTS=$(
+          jq --null-input \
+          --arg tool $1 \
+          --arg repo $2 \
+          '{($tool): ($repo)}'
+      )
   fi
+  confirm
   for TOOL in $(echo "${RELEASES_FILE_CONTENTS}" | jq -r '. | keys[]'); do
+    # If the tool is not already in the releases.json, add it
     if ! jq -r '. | keys[]' "${DOTFILE_PATH}/installers/github/releases.json" | grep -q "${TOOL}"; then
       echo "Adding tool to releases.json"
-      jq --arg tool $1 --arg repo $2 '. += {($tool): ($repo)}' "${DOTFILE_PATH}/installers/github/releases.json" |\
+      jq --arg tool $1 --arg repo $2 '
+        . += {($tool): ($repo)}
+        ' "${DOTFILE_PATH}/installers/github/releases.json" |\
          sponge "${DOTFILE_PATH}/installers/github/releases.json"
     fi
     if [ "${FORCE}" == "true" ]; then
@@ -63,11 +69,11 @@ gh_install_releases() {
     REPO=$(echo "${RELEASES_FILE_CONTENTS}" | jq -r --arg key "${TOOL}" '.[$key]')
     gh release download -R "${REPO}" --pattern '*[Dd]arwin*arm*' -D "${TARGET_DIR}"
     if [ "$?" -ne 0 ]; then
-      echo "Could not find darwin arm64 version of ${PACKAGE}...downloading amd64"
-      gh release download -R "${REPO}" --pattern '*[Dd]arwin*amd64*' -D "${TARGET_DIR}"
+      echo "Could not find darwin arm64 version of ${PACKAGE}...trying mac arm tar"
+      gh release download -R "${REPO}" --pattern '*mac*arm*tar*' -D "${TARGET_DIR}"
       if [ "$?" -ne 0 ]; then
-        echo "Could not find darwin amd64 version of ${PACKAGE}...trying mac arm tar"
-        gh release download -R "${REPO}" --pattern '*mac*arm*tar*' -D "${TARGET_DIR}"
+        echo "Could not find mac arm version of ${PACKAGE}...downloading amd64"
+        gh release download -R "${REPO}" --pattern '*[Dd]arwin*amd64*' -D "${TARGET_DIR}"
         if [ "$?" -ne 0 ]; then
           echo "Could not find mac arm tar version of ${PACKAGE}...trying generic mac tar"
           gh release download -R "${REPO}" --pattern '*mac*tar*' -D "${TARGET_DIR}"

@@ -2,4 +2,4 @@
 
 source "${HOME}/src/github.com/nomeelnoj/dotfiles/installers/github/gh_install_releases.sh"
 
-gh_install_releases $@
+gh_install_releases "$@"

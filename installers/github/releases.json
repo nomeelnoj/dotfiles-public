@@ -20,4 +20,10 @@
   "tfz53": "carlpett/tfz53",
   "json2yaml": "itchyny/json2yaml",
   "gron": "tomnomnom/gron",
+  "infracost": "infracost/infracost",
+  "fx": "antonmedv/fx",
+  "s5cmd": "peak/s5cmd",
+  "terraform-lsp": "juliosueiras/terraform-lsp",
+  "lua-language-server": "LuaLS/lua-language-server",
+  "hyperfine": "sharkdp/hyperfine"
 }

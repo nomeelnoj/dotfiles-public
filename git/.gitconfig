@@ -10,6 +10,7 @@
   pu    = push -u
   com   = commit -s
   ndiff = "diff --no-ext-diff"
+  difft = "difftool -t difftastic"
 [color]
   ui = auto
   push = true
@@ -57,6 +58,16 @@
   renameLimit = 10000
 [diff "git-dyff"]
   command = "git-dyff --args"
+[diff]
+  tool = difftastic
+[difftool]
+  prompt = false
+[difftool "difftastic"]
+  cmd = difft "$LOCAL" "$REMOTE"
+[pager]
+  difftool = true
 # Specifics per company
 [includeIf "gitdir:~/src/COMPANY_GIT_ORG/"]
   path = ~/.gitcompany
+[rerere]
+  enabled = true
