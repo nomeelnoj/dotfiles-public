@@ -1,6 +1,7 @@
 -- bootstrap lazy.nvim
 require("config.lazy")
 require("config.autocmds")
+require("config.keymaps")
 
 -- Set line numbers
 vim.opt.number = true

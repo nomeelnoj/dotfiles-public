@@ -15,3 +15,8 @@ autocmd("BufNewFile", {
         pattern = "*.tf",
         command = "set ft=terraform",
 })
+
+autocmd("BufWritePost", {
+        pattern = "*.sh",
+        command = "!chmod +x %"
+})

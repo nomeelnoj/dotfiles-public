@@ -12,8 +12,26 @@ function assume_role() {
   export AWS_SESSION_TOKEN=$(echo $ASSUME_ROLE | jq -r '.Credentials.SessionToken')
 }
 
+function aws_ssm_rdp() {
+  aws ssm start-session --target ${1} \
+    --document-name AWS-StartPortForwardingSession \
+    --parameters '{"portNumber":["3389"],"localPortNumber":["23389"]}'
+}
+
 function aws_account_names() {
   aws resourcegroupstaggingapi get-tag-values --key AwsProfile --profile "${AWS_ORG_PAYER}"
+}
+
+function aws_accounts() {
+  aws organizations list-accounts \
+    jq -r '
+      .Accounts[] | .Id as $id
+      | "aws organizations list-tags-for-resource --resource-id \($id)
+      | jq -r '
+          "'"'.Tags[]
+          | select(.Key==\"AwsProfile\").Value'"'"'
+          | xargs -I{} echo \($id),{}"
+    ' | bash
 }
 
 get_instances_by_ip() {

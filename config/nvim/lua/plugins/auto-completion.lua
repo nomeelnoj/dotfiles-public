@@ -30,6 +30,13 @@ return {
       require('luasnip.loaders.from_lua').load({ paths = vim.fn.stdpath("config") .. "/lua/snippets/" })
       local ls = require('luasnip')
 
+      -- Set the configuration for LuaSnip
+      ls.config.set_config {
+        history = true,
+        update_events = "TextChanged,TextChangedI",
+        enable_autosnippets = true,
+      }
+
       local LS = {}
 
       function LS.expand_or_jump()
@@ -60,8 +67,11 @@ return {
 
       local mode = { 'i', 's' }
 
-      set(mode, '<c-i>', LS.expand_or_jump)
-      set(mode, '<c-n>', LS.jump_prev)
+      --      set(mode, '<c-i>', LS.expand_or_jump)
+      --      set(mode, '<c-n>', LS.jump_prev)
+      --      set(mode, '<c-l>', LS.change_choice)
+      set(mode, '<c-k>', LS.expand_or_jump)
+      set(mode, '<c-j>', LS.jump_prev)
       set(mode, '<c-l>', LS.change_choice)
     end,
   },

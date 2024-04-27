@@ -71,3 +71,5 @@
   path = ~/.gitcompany
 [rerere]
   enabled = true
+[credential]
+	helper = store --file=/tmp/git-credentials
