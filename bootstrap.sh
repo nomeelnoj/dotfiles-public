@@ -623,6 +623,8 @@ install_all() {
   /usr/local/go/bin/go install github.com/wader/jq-lsp@master
   /usr/local/go/bin/go install golang.org/x/tools/gopls@latest
   /usr/local/go/bin/go install github.com/rust-lang/rust-analyzer@master
+  # Install other LSPs
+  npm i -g bash-language-server
   # If you do not want to use brew, you need a wrapper script
   # brew install lua-language-server
   echo "DO NOT FORGET TO INSTALL LUA-LANGUAGE-SERVER! https://github.com/LuaLS/lua-language-server"
@@ -661,8 +663,11 @@ cat << EOF
 There are still a few things to do to get your environment
 setup properly:
 
-- Set slack sidebar theme:
+- Set slack sidebar theme (old slack):
 #303E4D,#31556E,#61aa9f,#FFFFFF,#4A5664,#FFFFFF,#afce76,#78AF8F,#31556E,#FFFFFF
+new slack default 2024-05-01: #0B527B,#033640,#729C1A,#2392A2
+modified by me based on OG colors: #31556E,#31556E,#AFCE76,#61AA9F
+modified by slack based on my old theme: #303E4D,#61AA9F,#AFCE76,#78AF8F
 
 - Set brave search engine default to Google
 
