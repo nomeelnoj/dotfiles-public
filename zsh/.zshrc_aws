@@ -18,6 +18,12 @@ function aws_ssm_rdp() {
     --parameters '{"portNumber":["3389"],"localPortNumber":["23389"]}'
 }
 
+function aws_ssm_ssh() {
+  aws ssm start-session --target ${1} \
+    --document-name AWS-StartPortForwardingSession \
+    --parameters '{"portNumber":["22"],"localPortNumber":["2222"]}'
+}
+
 function aws_account_names() {
   aws resourcegroupstaggingapi get-tag-values --key AwsProfile --profile "${AWS_ORG_PAYER}"
 }
@@ -32,6 +38,49 @@ function aws_accounts() {
           | select(.Key==\"AwsProfile\").Value'"'"'
           | xargs -I{} echo \($id),{}"
     ' | bash
+}
+
+function aws_instances_by_tag() {
+  cat .ec2_instance_info.json |\
+  jq -r '
+  .Reservations[].Instances[] |
+    select(.State.Name == "stopped") |
+    {
+      Instance: .InstanceId,
+      Name: ( .Tags[]|select(.Key=="Name")|.Value // .InstanceId ),
+      PrivateIp: .PrivateIpAddress,
+      PublicIp: .PublicIpAddress,
+      State: {
+        Name: .State.Name,
+        TransitionReason: .StateTransitionReason,
+      },
+      Tags: (if .Tags? then reduce (.Tags[] | {(.Key): (.Value)}) as $item ({}; . + $item) else {} end)
+    }
+  ' |\
+  mlr --j2c flatten then unsparsify
+
+}
+
+function aws_search_public_enis() {
+  aws ec2 describe-network-interfaces |\
+    jq -r --arg search "$1" '
+      .NetworkInterfaces[]
+      | select(
+        .Association //{}
+        | .PublicIp //[]
+        | . == "($search)"
+      )
+    '
+}
+
+function aws_search_private_enis() {
+  aws ec2 describe-network-interfaces |\
+    jq -r --arg search "$1" '
+      .NetworkInterfaces[]
+      | select(
+        .PrivateIpAddress == "($search)"
+      )
+    '
 }
 
 get_instances_by_ip() {

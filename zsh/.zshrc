@@ -903,6 +903,34 @@ function disable_umbrella() {
   sudo launchctl unload /Library/LaunchDaemons/com.cisco.secureclient.vpnagentd.plist
 }
 
+function log_command() { history -s ${@} && ${@} || return; }
+
+function fvim() {
+  #set -x
+  #local IFS=$'\n'
+	if [ -f ".terraform/modules/modules.json" ]; then
+	local CUSTOM_DIRS=($(
+		cat '.terraform/modules/modules.json' |
+			jq -r '.Modules[].Dir' | sort | uniq
+  ))
+  fi
+
+	FILES=$(
+		find "${CUSTOM_DIRS[@]:-.}" -not -path './.*' -type f -print 2>/dev/null |
+			fzf-tmux \
+				--query="$1" \
+				--multi \
+				--select-1 \
+				--exit-0 \
+        --print0
+	)
+	if [[ -n "${FILES}" ]]; then
+	  ${EDITOR:-vi} "${FILES[@]}"
+  fi
+}
+
+bindkey '^P' fvim
+
 #This section fixes the "my keyboard and mouse dont work on server 2022" in AWS SSM
 #aws tools for powershell
 #powershell -c "$null = Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Confirm:$false"
