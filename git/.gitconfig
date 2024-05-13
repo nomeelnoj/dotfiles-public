@@ -1,5 +1,5 @@
 [user]
-	name = Jon Leemon
+  name = Jon Leemon
   username = nomeelnoj
   email = nomeelnoj@users.noreply.github.com
   signingkey = 6841E1414EEA439D
@@ -10,7 +10,12 @@
   pu    = push -u
   com   = commit -s
   ndiff = "diff --no-ext-diff"
-  difft = "difftool -t difftastic"
+  difft = !git \
+    -c \
+    diff.git-dyff.command=\"difft \"${LOCAL}\" \"${REMOTE}\"\" \
+    -c \
+    diff.default.command=\"difft \"${LOCAL}\" \"${REMOTE}\"\" \
+    diff
 [color]
   ui = auto
   push = true
@@ -54,16 +59,14 @@
   signoff = true
 [init]
   defaultBranch = main
+; Set up both custom git-dyff and difftastic for diffing
 [diff]
   renameLimit = 10000
 [diff "git-dyff"]
-  command = "git-dyff --args"
-[diff]
-  tool = difftastic
+  command = git-dyff --args
+[diff "default"]
 [difftool]
   prompt = false
-[difftool "difftastic"]
-  cmd = difft "$LOCAL" "$REMOTE"
 [pager]
   difftool = true
 # Specifics per company
@@ -73,3 +76,8 @@
   enabled = true
 [credential]
 	helper = store --file=/tmp/git-credentials
+[filter "lfs"]
+	required = true
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process

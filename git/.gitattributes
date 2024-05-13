@@ -1,3 +1,4 @@
+* diff=default
 *.yaml diff=git-dyff
 *.json diff=git-dyff
 *.tf diff=git-dyff
