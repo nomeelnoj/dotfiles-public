@@ -41,3 +41,10 @@ vim.keymap.set(
   ':call SourceDirectory("", "")<CR>',
   { noremap = true, silent = true }
 )
+
+vim.keymap.set(
+  'n',
+  '<Leader>ff',
+  ':Telescope find_files<CR>',
+  { noremap = true, silent = false}
+)

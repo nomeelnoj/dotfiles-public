@@ -1,4 +1,9 @@
 -- bootstrap lazy.nvim
+vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
+    pattern = "*.zshrc_secure",
+    command = "set filetype=secure",
+})
+
 require("config.lazy")
 require("config.autocmds")
 require("config.keymaps")

@@ -1,7 +1,4 @@
 return {
-  -- nvim-cmp: Autocompletion plugin
-  { "hrsh7th/nvim-cmp" },
-
   -- Completion sources
   { "hrsh7th/cmp-nvim-lsp" }, -- LSP source for nvim-cmp
   { "hrsh7th/cmp-buffer" },   -- Buffer completions
@@ -12,7 +9,20 @@ return {
     cmd = "Copilot",
     event = "InsertEnter",
     config = function()
-      require("copilot").setup({})
+      require("copilot").setup({
+        filetypes = {
+            secure = false, -- disable copilot for secure files
+            yaml = true, -- default: false
+            markdown = true, -- default: false
+            help = false,
+            gitcommit = false,
+            gitrebase = false,
+            hgcommit = false,
+            svn = false,
+            cvs = false,
+            ["."] = false,
+        },
+      })
     end,
   },
   {
@@ -37,42 +47,15 @@ return {
         enable_autosnippets = true,
       }
 
-      local LS = {}
+      vim.keymap.set({ "i", "s" }, "<Tab>",
+        function() if ls.expand_or_jumpable() then ls.expand_or_jump() else vim.api.nvim_input('<C-V><Tab>') end end,
+        { silent = true })
+      vim.keymap.set({ "i", "s" }, "<S-Tab>", function() if ls.jumpable(-1) then ls.jump(-1) end end, { silent = true })
+      vim.keymap.set({ "i", "s" }, "<C-l>", function() require("luasnip.extras.select_choice")() end, {})
 
-      function LS.expand_or_jump()
-        if ls.expand_or_jumpable() then
-          ls.expand_or_jump()
-        end
-      end
-
-      function LS.jump_next()
-        if ls.jumpable(1) then
-          ls.jump(1)
-        end
-      end
-
-      function LS.jump_prev()
-        if ls.jumpable(-1) then
-          ls.jump(-1)
-        end
-      end
-
-      function LS.change_choice()
-        if ls.choice_active() then
-          ls.change_choice(1)
-        end
-      end
-
-      local set = vim.keymap.set
-
-      local mode = { 'i', 's' }
-
-      --      set(mode, '<c-i>', LS.expand_or_jump)
-      --      set(mode, '<c-n>', LS.jump_prev)
-      --      set(mode, '<c-l>', LS.change_choice)
-      set(mode, '<c-k>', LS.expand_or_jump)
-      set(mode, '<c-j>', LS.jump_prev)
-      set(mode, '<c-l>', LS.change_choice)
+      -- set(mode, '<c-k>', LS.expand_or_jump)
+      -- set(mode, '<c-j>', LS.jump_prev)
+      -- set(mode, '<c-l>', LS.change_choice)
     end,
   },
   { "saadparwaiz1/cmp_luasnip" },
@@ -81,7 +64,13 @@ return {
     config = function()
       require("lsp-format").setup {}
       -- Format on save https://github.com/lukas-reineke/lsp-format.nvim?tab=readme-ov-file#wq-will-not-format-when-not-using-sync
-      vim.cmd [[cabbrev wq execute "Format sync" <bar> wq]]
+      -- vim.cmd [[cabbrev wq execute "Format sync" <bar> wq]]
+      vim.api.nvim_create_autocmd("BufWritePre", {
+        callback = function()
+          -- vim.lsp.buf.format()
+          require("lsp-format").format({ sync = true })
+        end
+      })
     end,
   },
 
@@ -89,28 +78,57 @@ return {
   {
     "neovim/nvim-lspconfig",
     config = function()
-      require('lspconfig').tsserver.setup { on_attach = require("lsp-format").on_attach }
-      require('lspconfig').terraform_lsp.setup {
-        on_attach = require("lsp-format").on_attach,
-      }
-      require('lspconfig').terraformls.setup {
-        on_attach = require("lsp-format").on_attach,
-      }
-      require('lspconfig').jqls.setup { on_attach = require("lsp-format").on_attach }
-      require('lspconfig').gopls.setup { on_attach = require("lsp-format").on_attach }
-      require('lspconfig').lua_ls.setup {
-        on_attach = require("lsp-format").on_attach,
-        settings = {
-          Lua = {
-            diagnostics = {
-              globals = { 'vim' }
+      local capabilities = require('cmp_nvim_lsp').default_capabilities()
+
+      local servers = {
+        -- { 'iam-lsp' },
+        -- { 'emoji-lsp' },
+        { 'terraformls' },
+        { 'terraform_lsp' },
+        { 'jqls' },
+        { 'gopls' },
+        { 'bashls' },
+        -- { 'tsserver' },
+        {
+          'lua_ls',
+          settings = {
+            Lua = {
+              diagnostics = {
+                globals = { 'vim' }
+              }
             }
           }
-        }
+        },
       }
+
+      local lsp = require('lspconfig')
+      for _, server in pairs(servers) do
+        local lsp_config = lsp[server[1]]
+        if lsp_config and lsp_config.document_config and
+            lsp_config.document_config.default_config and
+            lsp_config.document_config.default_config.cmd and
+            vim.fn.executable(lsp_config.document_config.default_config.cmd[1]) == 1 then
+          -- if (vim.fn.executable(lsp_config.document_config.default_config.cmd[1]) == 1) then
+          local opts = {
+            on_attach = require("lsp-format").on_attach,
+            capabilities = capabilities,
+          }
+          for k, v in pairs(server) do
+            if type(k) ~= 'number' then
+              opts[k] = v
+            end
+          end
+          lsp_config.setup(opts)
+        else
+          print(
+            "Language server '" .. server[1] .. "' not available.",
+            "Please install the lsp via https://github.com/neovim/nvim-lspconfig/blob/head/doc/server_configurations.md#" ..
+            server[1]
+          )
+        end
+      end
     end,
   },
-
   -- Setup nvim-cmp and preferences
   {
     "hrsh7th/nvim-cmp",
@@ -121,6 +139,26 @@ return {
         window = {
           completion = cmp.config.window.bordered(),
           documentation = cmp.config.window.bordered(),
+        },
+
+        formatting = {
+            format = function(entry, item)
+                local label = entry.source.name
+
+                if label == 'nvim_lsp' then
+                    pcall(function()
+                        label = entry.source.source.client.name
+                    end)
+                end
+
+                label = string.format('[%s]', label)
+                if item.menu ~= nil then
+                    item.menu = string.format('%s %s', label, item.menu)
+                else
+                    item.menu = label
+                end
+                return item
+            end,
         },
 
         snippet = {
@@ -145,10 +183,10 @@ return {
           {
             name = "nvim_lsp",
             group_index = 2,
-            entry_filter = function(entry)
-              -- Type Text returns are not the best results from an lsp
-              return require("cmp.types").lsp.CompletionItemKind[entry:get_kind()] ~= "Text"
-            end,
+            -- entry_filter = function(entry)
+            --   -- Type Text returns are not the best results from an lsp
+            --   return require("cmp.types").lsp.CompletionItemKind[entry:get_kind()] ~= "Text"
+            -- end,
           },
           { name = "path",    group_index = 2 },
           { name = "luasnip", group_index = 2 },
