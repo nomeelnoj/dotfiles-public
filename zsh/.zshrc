@@ -10,7 +10,10 @@ zmodload zsh/zprof # Requires zprof at the end of file to be uncommented
 # export PATH="/opt/homebrew/opt/gnu-sed/libexec/gnubin:$PATH"
 # export PATH="/opt/homebrew/bin:$PATH"
 # export PATH="/Users/$USER/Library/Python/3.9/bin:$PATH"
-export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$HOME/go/bin:$PATH"
+export GOPATH="$HOME/src/go"
+export GOROOT="/usr/local/go"
+export GO111MODULE=''
+export PATH="${KREW_ROOT:-$HOME/.krew}/bin:${GOPATH}/bin:$PATH"
 export REPO_ROOT="$HOME/src"
 export GITHUB_REPO_ROOT="${REPO_ROOT}/github.com"
 export BITBUCKET_REPO_ROOT="${REPO_ROOT}/bitbucket.org"
@@ -38,7 +41,9 @@ function timeout() {
   perl -e 'alarm shift; exec @ARGV' "$@"
 }
 
-
+function truncate_lsp() {
+  truncate -s 5M ~/.local/state/nvim/lsp.log
+}
 function cclip() {
   while read line; do
     echo 'echo '"$line"'' | pbcopy
@@ -903,31 +908,39 @@ function disable_umbrella() {
   sudo launchctl unload /Library/LaunchDaemons/com.cisco.secureclient.vpnagentd.plist
 }
 
-function log_command() { history -s ${@} && ${@} || return; }
+# Add the called command to zsh history
+# BASH VERSION: function log_command() { history -s ${@} && ${@} || return; }
+function log_command() {
+  print -s -- "$*"
+  zsh -ic "$*"
+}
 
 function fvim() {
   #set -x
   #local IFS=$'\n'
-	if [ -f ".terraform/modules/modules.json" ]; then
-	local CUSTOM_DIRS=($(
-		cat '.terraform/modules/modules.json' |
-			jq -r '.Modules[].Dir' | sort | uniq
+  if [ -f ".terraform/modules/modules.json" ]; then
+  local CUSTOM_DIRS=($(
+    cat '.terraform/modules/modules.json' |
+    jq -r '.Modules[].Dir' | sort | uniq
   ))
   fi
 
-	FILES=$(
-		find "${CUSTOM_DIRS[@]:-.}" -not -path './.*' -type f -print 2>/dev/null |
-			fzf-tmux \
-				--query="$1" \
-				--multi \
-				--select-1 \
-				--exit-0 \
-        --print0
-	)
-	if [[ -n "${FILES}" ]]; then
-	  ${EDITOR:-vi} "${FILES[@]}"
+  FILES=$(
+    find "${CUSTOM_DIRS[@]:-.}" -not -path './.*' -type f -print 2>/dev/null |
+    fzf-tmux \
+      --query="$1" \
+      --multi \
+      --select-1 \
+      --exit-0 \
+      --print0
+  )
+  FILES=($(echo "$FILES" | tr '\0' '\n'))
+  if [[ -n "${FILES}" ]]; then
+    log_command ${EDITOR:-vi} "${FILES[@]}"
   fi
 }
+
+zle -N fvim
 
 bindkey '^P' fvim
 

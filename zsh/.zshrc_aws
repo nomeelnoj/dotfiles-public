@@ -24,6 +24,19 @@ function aws_ssm_ssh() {
     --parameters '{"portNumber":["22"],"localPortNumber":["2222"]}'
 }
 
+function aws_ssm() {
+  if [ -z "$1" ]; then
+    echo "No instance id provided!"
+    return 1
+  fi
+  if [ -z "$2" ]; then
+    echo "No profile provided, using default"
+    aws ssm start-session --target ${1}
+  else
+    aws ssm start-session --target ${1} --profile ${2}
+  fi
+}
+
 function aws_account_names() {
   aws resourcegroupstaggingapi get-tag-values --key AwsProfile --profile "${AWS_ORG_PAYER}"
 }
