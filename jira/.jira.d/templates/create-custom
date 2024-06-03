@@ -1,0 +1,14 @@
+fields:
+  project:
+    key: {{ or .overrides.project "" }}
+  issuetype:
+    name: {{ or .overrides.issuetype "" }}
+  summary: >-
+    {{ or .overrides.summary "" }}
+  description: |~
+    {{ or .overrides.description "" | indent 4 }}
+  reporter:
+    id: {{ or .overrides.reporter .overrides.user }}
+  customfield_10013: {{ .overrides.storypoints }}
+  parent:
+    key: {{ .overrides.epic }}

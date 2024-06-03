@@ -1,0 +1,4 @@
+{{/* edit template */ -}}
+fields:
+  description: |~
+    {{ or .overrides.description .fields.description "" | indent 4 }}
