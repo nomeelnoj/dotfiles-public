@@ -48,3 +48,15 @@ vim.keymap.set(
   ':Telescope find_files<CR>',
   { noremap = true, silent = false}
 )
+
+vim.api.nvim_create_user_command('Minify', function()
+  require('plugins.minify').minify()
+end, {})
+
+vim.api.nvim_create_user_command('LineMinify', function(params)
+  require('plugins.minify').line_minify(params.args:match("(%d+),(%d+)"))
+end, { nargs = 1 })
+
+vim.api.nvim_create_user_command('UnMinify', function()
+  require('plugins.minify').unminify()
+end, {})

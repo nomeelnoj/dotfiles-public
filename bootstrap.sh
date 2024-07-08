@@ -528,6 +528,7 @@ link_files() {
   link "${DOTFILE_PATH}/git/.gitattributes" "${HOME}/.gitattributes"
   link "${DOTFILE_PATH}/git/.gitignore_global" "${HOME}/.gitignore_global"
   link "${DOTFILE_PATH}/git/.gitconfig" "${HOME}/.gitconfig"
+  link "${DOTFILE_PATH}/git/.git_commit_message" "${HOME}/.git_commit_message"
   cp -n "${DOTFILE_PATH}/git/.gitcompany.tpl" "${HOME}/.gitcompany"
   # Allow for easy installation of gh releases
   link "${DOTFILE_PATH}/git/gh_install_release" '/usr/local/bin/gh_install_release'

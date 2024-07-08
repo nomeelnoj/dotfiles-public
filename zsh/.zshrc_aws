@@ -53,6 +53,69 @@ function aws_accounts() {
     ' | bash
 }
 
+function aws_bucket_usage() {
+
+  echo ${@}
+
+  if [ -z "${1+x}" ]; then
+     echo "Bucket name must be provided as first arg!!!"
+  else
+    BUCKET="${1}"
+  fi
+
+  if [ -z "${2+x}" ]; then
+    echo "No aws profile provided as second arg.  Using default profile"
+  else
+    AWS_PROFILE="${2}"
+  fi
+
+  AWS_PROFILE=${AWS_PROFILE} \
+    aws cloudwatch get-metric-statistics \
+      --namespace AWS/S3 \
+      --metric-name NumberOfObjects \
+      --dimensions \
+        Name=BucketName,Value="${BUCKET}" \
+        Name=StorageType,Value=AllStorageTypes \
+      --start-time "$(date -u -v-15m +'%Y-%m-%dT%H:%M:%SZ')" \
+      --end-time "$(date -u -v-1d +'%Y-%m-%dT%H:%M:%SZ')" \
+      --period 86400 \
+      --statistics Sum \
+      --query 'Datapoints[?Sum!=`null`].[Timestamp,Sum]' |\
+    jq '.[][1]' |\
+    sort |\
+    uniq -c
+}
+
+function aws_export_route53() {Aa
+  if [ "${1}" == "help" ]; then
+    echo "Run this command with the hosted zone ID (e.g. /hostedzone/Z12345) as the first arg"
+    echo "Optionally, provide an AWS PROFILE as the second arg."
+    return 0
+  fi
+  if [ -z "${1+x}" ]; then
+    echo "No zone provided as first arg"
+    return 1
+  else
+    local HOSTED_ZONE_ID="${1}"
+  fi
+  aws route53 \
+    list-resource-record-sets \
+    --hosted-zone-id "${HOSTED_ZONE_ID}" |\
+    jq '
+      [
+        .ResourceRecordSets[]
+        |
+          {
+            name: .Name,
+            type: .Type,
+            ttl: (.TTL // null),
+            records: (if .ResourceRecords then .ResourceRecords | map(.Value) else null end),
+            alias: (if .AliasTarget then .AliasTarget else null end)}
+         | if .records == null then del(.records) else del(.alias) end
+      ]
+    '
+}
+
 function aws_instances_by_tag() {
   cat .ec2_instance_info.json |\
   jq -r '
@@ -71,7 +134,17 @@ function aws_instances_by_tag() {
     }
   ' |\
   mlr --j2c flatten then unsparsify
+}
 
+function aws_get_policy() {
+  if [ -z "$1" ]; then
+    echo "No policy arn provided!"
+    return 1
+  fi
+  local POLICY_ARN="${1}"
+  aws iam get-policy-version \
+    --version-id $(aws iam get-policy --policy-arn "${POLICY_ARN}" | jq -r .Policy.DefaultVersionId) \
+    --policy-arn "${POLICY_ARN}"
 }
 
 function aws_search_public_enis() {
@@ -102,6 +175,7 @@ get_instances_by_ip() {
   if [ -z "${2}" ]; then
     echo "No profile used, using default profile."
     echo "Pass an AWS profile in as the second argument to use it."
+  else
     AWS_PROFILE="${2}"
   fi
   aws ec2 describe-instances \
@@ -109,7 +183,7 @@ get_instances_by_ip() {
     jq --arg ip "${IP_ADDRESS}" '
       [
         .[][].Instances[]
-        | select(.PrivateIpAddress == "\($ip)")
+        | select(.PrivateIpAddress == ($ip))
         | {
              "InstanceId": .InstanceId,
              "InstanceType": .InstanceType,
@@ -270,8 +344,20 @@ function get_instances() {
   if [ -z "${2+x}" ]; then
     echo "Second arg as AWS_PROFILE not provided, using env var or default profile..."
   fi
+  if [ "${3}" = "full" ]; then
+    JQ_FILTER=""
+  else
+    JQ_FILTER="| pick(
+        .InstanceId,
+        .InstanceType,
+        .PrivateIpAddress,
+        .PublicIpAddress,
+        .State.Name
+      ) + {Tags: (.Tags | from_entries)}"
+  fi
+
   local SEARCH="${1}"
-  local AWS_PROFILE="${2:-$AWS_PROFILE}"
+  local AWS_PROFILE="${2:-${AWS_PROFILE:-default}}"
   aws ec2 describe-instances --profile $AWS_PROFILE |\
     jq --arg search "${SEARCH}" '
       [
@@ -282,18 +368,21 @@ function get_instances() {
             .Value | test("\($search)")
           )
         )
-      )
-    ]'
+      ) '"${JQ_FILTER}"'
+      ]
+    '
 }
 
-function get_instances_tags() {
+function get_instances_all() {
+  IP_ADDRESS="${1}"
   if [ -z "${1+x}" ]; then
-    echo "No AWS profile provided as first arg.  Using default..."
-    local LOCAL_AWS_PROFILE="default"
-  else
-    local LOCAL_AWS_PROFILE="${1}"
+    echo "Must provide instance Name regex search term as first arg!"
+    return 1
   fi
-  AWS_PROFILE="${LOCAL_AWS_PROFILE}" \
+  if [ -z "${2+x}" ]; then
+    echo "Second arg as AWS_PROFILE not provided, using env var or default profile..."
+  fi
+  local AWS_PROFILE="${2:-${AWS_PROFILE:-default}}"
     aws ec2 describe-instances \
     --filters Name=instance-state-name,Values=running |\
     jq '
@@ -313,7 +402,6 @@ function get_instances_tags() {
        ]
      '
 }
-
 
 function get_me_creds() {
   aws sso get-role-credentials \

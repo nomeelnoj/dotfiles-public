@@ -1,12 +1,18 @@
 -- bootstrap lazy.nvim
 vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
-    pattern = "*.zshrc_secure",
-    command = "set filetype=secure",
+  pattern = "*.zshrc_secure",
+  command = "set filetype=secure",
+})
+
+vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
+  pattern = "COMMIT_EDITMSG",
+  command = "set filetype=gitcommit",
 })
 
 require("config.lazy")
 require("config.autocmds")
 require("config.keymaps")
+require("config.filetype")
 
 -- Set line numbers
 vim.opt.number = true
@@ -40,6 +46,9 @@ vim.g.loaded_netrwPlugin = 1
 -- optionally enable 24-bit colour
 vim.opt.termguicolors = true
 
+-- undofile so you can undo after closing / saving a file
+vim.opt.undodir = os.getenv("HOME") .. "/.config/nvim/undodir"
+vim.opt.undofile = true
 
 -- Set Paste mode for easier pasting from external sources
 -- vim.opt.paste = true

@@ -36,10 +36,11 @@
   untracked = red
 [core]
   attributesfile = ~/.gitattributes
-	excludesfile = ${HOME}/.gitignore_global
+  excludesfile = ~/.gitignore_global
+	editor = nvim
 [commit]
-	template = ${HOME}/.stCommitMsg
-	gpgsign = true
+  # template = ~/.git_commit_template
+  gpgsign = true
 [push]
   default = current
 [branch]

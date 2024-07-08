@@ -7,13 +7,16 @@ return {
             require 'nvim-treesitter.configs'.setup {
                 -- Add all the languages you want to enable here
                 ensure_installed = {
+                    "bash",
+                    "diff",
+                    "jq",
+                    "json",
                     "lua",
+                    "markdown",
                     "python",
                     "terraform",
+                    "vimdoc",
                     "yaml",
-                    "json",
-                    "bash",
-                    "jq"
                 },
 
                 -- Enable Tree-sitter based highlighting

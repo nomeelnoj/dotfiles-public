@@ -5,3 +5,6 @@ plists/**
 **/.vim/pack/plugins/start/vim-terraform*
 **/.vim/pack/plugins/start/surround*
 **/.vim/pack/plugins/start/vim-hcl*
+
+# Undo directory
+undodir

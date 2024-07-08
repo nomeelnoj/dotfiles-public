@@ -5,6 +5,9 @@ return {
   { "hrsh7th/cmp-path" },     -- Path completions
   { "hrsh7th/cmp-cmdline" },  -- Command line completions
   {
+  "kkoomen/vim-doge", -- doc generation
+  },
+  {
     "zbirenbaum/copilot.lua",
     cmd = "Copilot",
     event = "InsertEnter",

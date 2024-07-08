@@ -5,7 +5,7 @@ user: ${JIRA_USERNAME}
 password-source: keyring
 authentication-method: api-token
 project: CPW
-editor: vim --cmd "autocmd BufWritePre * :silent!%s/\`\`\`/{code}/g"
+editor: nvim --cmd "autocmd BufWritePre * :silent!%s/\`\`\`/{code}/g"
 
 custom-commands:
   - name: epics
@@ -50,9 +50,6 @@ custom-commands:
       BOARD_ID=\$({{jira}} req "/rest/agile/1.0/board?projectKeyOrId=\$PROJECT&type=scrum" --gjq values.0.id)
       SPRINT=\$({{jira}} req "/rest/agile/1.0/board/\$BOARD_ID/sprint?state=active" --gjq values.0.id)
       OUTFILE=$(mktemp)
-      ISSUE=\$({{jira}} create -o sprint=\$SPRINT -p \$PROJECT 2>&1 </dev/tty)
-      ISSUE_ID=\$(echo \${ISSUE} | awk '{print \$2}')
-      echo "Issue is \$ISSUE_ID"
       EPIC_ID=\$(jira epics|\
         fzf-tmux \
           --query="$1" \
@@ -63,9 +60,7 @@ custom-commands:
             echo {} | cut -d ':' -f 1 | xargs -I % sh -c "echo %"/+abort' \
         --exit-0
       )
-      jira epic add \
-        ${EPIC_ID} \
-        ${ISSUE_ID}
+      {{jira}} create -o sprint=\$SPRINT -o epic=\$EPIC_ID -p \$PROJECT
   - name: sprint-add
     help: add issue to active sprint for project
     options:

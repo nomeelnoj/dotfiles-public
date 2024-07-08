@@ -618,22 +618,30 @@ function kms_decrypt {
     aws kms decrypt --ciphertext-blob fileb://<(echo "$1" | base64 -d) --output text --query Plaintext | base64 -d
 }
 
-function find_replace() {
-    # Exclude dot files/folders
-    perl -p -i -e "s|$1|$2|g" \
-    $(find . -type f -not -path '*/\.*')
+find_files() {
+	# Exclude dot files/folders
+  set -x
+	find "${1:-.}" -type f -not -path '*/\.*' |\
+	fzf \
+		--multi \
+		--bind "ctrl-a:toggle-all" \
+		--header='(toggle-all:ctrl-a)'
 }
 
-function find_replace_setup() {
-    # Exclude dot files/folders
-    perl -p -i -e "s|$1|$2|g" \
-    $(find . -type f -not -path '*/\.*' -name 'setup.tf')
+find_replace() {
+  set -x
+	# Single Line Match
+	# Exclude dot files/folders
+  FILES=($(find_files))
+	[[ $FILES ]] && perl -p -i -e "s|${1}|${2}|g" ${FILES}
 }
 
-function find_replace_setup_json() {
-    # Exclude dot files/folders
-    perl -p -i -e "s|$1|$2|g" \
-    $(find . -type f -not -path '*/\.*' -name 'setup.tf.json')
+find_replace_string() {
+	# File is String with \n as line return
+	# Exclude dot files/folders
+	# s == "dot matches new line"
+  FILES=($(find_files))
+	[[ ${FILES} ]] && perl -0 -p -i -e "s|${1}|${2}|gs" ${FILES}
 }
 
 function restart_gp() {
@@ -916,28 +924,30 @@ function log_command() {
 }
 
 function fvim() {
-  #set -x
+  # set -x
   #local IFS=$'\n'
   if [ -f ".terraform/modules/modules.json" ]; then
-  local CUSTOM_DIRS=($(
-    cat '.terraform/modules/modules.json' |
-    jq -r '.Modules[].Dir' | sort | uniq
-  ))
+    local CUSTOM_DIRS=($(
+      cat '.terraform/modules/modules.json' |
+      jq -r '.Modules[].Dir' | sort | uniq
+    ))
   fi
 
   FILES=$(
     find "${CUSTOM_DIRS[@]:-.}" -not -path './.*' -type f -print 2>/dev/null |
-    fzf-tmux \
-      --query="$1" \
-      --multi \
-      --select-1 \
-      --exit-0 \
-      --print0
+      fzf-tmux \
+        --query="$1" \
+        --multi \
+        --select-1 \
+        --exit-0 \
+        --print0
   )
   FILES=($(echo "$FILES" | tr '\0' '\n'))
   if [[ -n "${FILES}" ]]; then
     log_command ${EDITOR:-vi} "${FILES[@]}"
   fi
+  # eval 'fc -R'
+  # builtin fc -R
 }
 
 zle -N fvim

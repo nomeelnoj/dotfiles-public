@@ -1,0 +1,71 @@
+{{/* edit template */ -}}
+# issue: {{ .key }} - created: {{ .fields.created | age}} ago
+update:
+  comment:
+    - add:
+        body: |~
+          {{ or .overrides.comment "" | indent 10 }}
+fields:
+  summary: |~
+    {{ or .overrides.summary .fields.summary }}
+  description: |~
+    {{ or .overrides.description .fields.description "" | indent 4 }}
+{{- if .meta.fields.priority }}
+  priority: # Values: {{ range .meta.fields.priority.allowedValues }}{{.name}}, {{end}}
+    name: {{ or .overrides.priority .fields.priority.name "" }}
+{{- end}}
+{{- if and .meta.fields.components .meta.fields.components.allowedValues }}
+  components: # Values: {{ range .meta.fields.components.allowedValues }}{{.name}}, {{end}}{{if .overrides.components }}{{ range (split "," .overrides.components)}}
+    - name: {{.}}{{end}}{{else}}{{ range .fields.components }}
+    - name: {{ .name }}{{end}}{{end}}
+{{- end}}
+{{- if and .meta.fields.assignee .fields.assignee.accountId}}
+  assignee:
+    accountId: {{ or .overrides.assignee .fields.assignee.accountId}} # {{ .fields.assignee.displayName }}
+{{- end}}
+{{- if .meta.fields.reporter}}
+  reporter:
+    id: {{ or .overrides.reporter .fields.reporter.accountId }} # {{ .fields.reporter.displayName }}
+{{- end}}
+{{- if .meta.fields.customfield_14863}}
+  customfield_14863: |~ # Timeline of Major Events
+    {{ or .overrides.timeline_of_major_events .fields.customfield_14863 "" | indent 4 }}
+{{end}}
+{{- if .meta.fields.customfield_14864}}
+  customfield_14864: |~ # Immediate Action
+    {{ or .overrides.immediate_action .fields.customfield_14864 "" | indent 4 }}
+{{end}}
+{{- if .meta.fields.customfield_17558}}
+  customfield_17558: |~ # Information Gathering
+    {{ or .overrides.information_gathering .fields.customfield_17558 "" | indent 4 }}
+{{end}}
+{{- if .meta.fields.customfield_14865}}
+  customfield_14865: |~ # Root Cause Analysis
+    {{ or .overrides.root_case_analysis .fields.customfield_14865 "" | indent 4 }}
+{{end}}
+{{- if .meta.fields.customfield_14866}}
+  customfield_14866: |~ # Corrective Actions
+    {{ or .overrides.correct_actions .fields.customfield_14866 "" | indent 4 }}
+{{end}}
+{{- if .meta.fields.customfield_17560}}
+  customfield_17560: |~ # Effectiveness Check
+    {{ or .overrides.effectiveness_check .fields.customfield_17560 "" | indent 4 }}
+{{end}}
+{{- if .meta.fields.customfield_17563}}
+  customfield_17563: |~ # CAP Delays
+    {{ or .overrides.cap_delays .fields.customfield_17563 "" | indent 4 }}
+{{end}}
+{{- if .fields.timetracking.originalEstimate}}
+  timetracking:
+    originalEstimate: {{ or .overrides.originalEstimate .fields.timetracking.originalEstimate "" }}
+    remainingEstimate: {{ or .overrides.remainingEstimate .fields.timetracking.remainingEstimate ""}}
+{{- end}}
+# votes: {{ .fields.votes.votes }}
+# watchers:
+#   {{ range .fields.customfield_14485 }}  - {{ .displayName }}
+# {{end}}
+# comments:
+# {{ range .fields.comment.comments }}  - | # {{.author.displayName}}, {{.created | age}} ago
+#     {{ or .body "" | indent 4 | comment}}
+# {{end}}
+
