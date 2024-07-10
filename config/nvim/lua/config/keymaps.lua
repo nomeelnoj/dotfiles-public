@@ -15,6 +15,16 @@ vim.api.nvim_set_keymap(
   }
 )
 
+vim.api.nvim_set_keymap(
+  'n',
+  '<Leader>prov',
+  ':lua tf_functions.provider()<CR>',
+  {
+    noremap = true,
+    silent = true
+  }
+)
+
 vim.api.nvim_exec([[
   function! SourceDirectory(directory, extension)
     let l:directory = a:directory == '' ? expane('%:p:h') : a:directory
@@ -46,7 +56,7 @@ vim.keymap.set(
   'n',
   '<Leader>ff',
   ':Telescope find_files<CR>',
-  { noremap = true, silent = false}
+  { noremap = true, silent = false }
 )
 
 vim.api.nvim_create_user_command('Minify', function()
