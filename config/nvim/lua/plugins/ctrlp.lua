@@ -1,5 +1,5 @@
 return {
-    {
-        "kien/ctrlp.vim",
-    }
+  --    {
+  --        "kien/ctrlp.vim",
+  --    }
 }

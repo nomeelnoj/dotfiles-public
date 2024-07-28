@@ -1,4 +1,3 @@
--- bootstrap lazy.nvim
 vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
   pattern = "*.zshrc_secure",
   command = "set filetype=secure",
@@ -9,6 +8,9 @@ vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
   command = "set filetype=gitcommit",
 })
 
+vim.g.mapleader = " "
+
+-- bootstrap lazy.nvim
 require("config.lazy")
 require("config.autocmds")
 require("config.keymaps")
@@ -16,6 +18,7 @@ require("config.filetype")
 
 -- Set line numbers
 vim.opt.number = true
+vim.opt.relativenumber = true
 
 -- Minimum number of screen lines above/below the cursor
 vim.opt.scrolloff = 10
@@ -40,8 +43,8 @@ vim.opt.splitright = true
 
 -- nvim-tree
 -- disable netrw at the very start of your init.lua
-vim.g.loaded_netrw = 1
-vim.g.loaded_netrwPlugin = 1
+-- vim.g.loaded_netrw = 1
+-- vim.g.loaded_netrwPlugin = 1
 
 -- optionally enable 24-bit colour
 vim.opt.termguicolors = true

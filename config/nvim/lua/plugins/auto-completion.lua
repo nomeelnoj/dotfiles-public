@@ -4,9 +4,7 @@ return {
   { "hrsh7th/cmp-buffer" },   -- Buffer completions
   { "hrsh7th/cmp-path" },     -- Path completions
   { "hrsh7th/cmp-cmdline" },  -- Command line completions
-  {
-  "kkoomen/vim-doge", -- doc generation
-  },
+  { "kkoomen/vim-doge" },-- doc generation
   {
     "zbirenbaum/copilot.lua",
     cmd = "Copilot",
