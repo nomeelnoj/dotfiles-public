@@ -152,6 +152,26 @@ install_text_expander() {
 install_shell_environment() {
   # Install oh-my-zsh
   sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
+  # Customize oh-my-zsh
+  FILE_CONTENT=$(cat << 'EOF'
+  function color-diff {
+    diff --color \$@
+  }
+  alias diff="color-diff"
+  compdef _diff color-diff
+EOF
+  )
+
+  # color-diff runs into self-referential funcnest issues in deep directories, this will resolve them
+  if grep -q "alias diff='diff --color'" "${ZSH:-$HOME/.oh-my-zsh}/lib/theme-and-appearance.zsh"; then
+    perl -p -i -e \
+      "s|alias diff='diff --color'|${FILE_CONTENT}|g" "${ZSH:-$HOME/.oh-my-zsh}/lib/theme-and-appearance.zsh"
+  fi
+
+  # The env vars in ~/.zshrc were not working for a while, but seem to be now...weird...
+  # sed -i '' 's|HISTSIZE=50000|HISTSIZE=500000|g' "${ZSH:-$HOME/.oh-my-zsh}/lib/history.zsh"
+  # sed -i '' 's|SAVEHIST=10000|SAVEHIST=500000|g' "${ZSH:-$HOME/.oh-my-zsh}/lib/history.zsh"
+
   # Install powerlevel10k
   git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k
   # Install Fonts
