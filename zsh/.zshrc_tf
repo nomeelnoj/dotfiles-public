@@ -140,7 +140,7 @@ function ldap_vault_auth() {
       # echo ${RESULTS}
       # echo ${RESULTS} | jq -r 'del(.auth.client_token)'
       echo ${RESULTS} | jq -r .auth.client_token > $HOME/.vault-token
-      echo ${RESULTS} | jq -r .auth.client_token > $HOME/.vault-token_${VAULT_ENVIRONMENT}
+      echo ${RESULTS} | jq -r .auth.client_token > $HOME/.vault-token-${VAULT_ENVIRONMENT}
   fi
 }
 export -f ldap_vault_auth &>/dev/null
@@ -307,6 +307,7 @@ function dynamic_vault() {
     )
     echo ${RESULTS} | jq -r .auth.client_token > $HOME/.vault-token-${ENV}
   done
+  echo "$(date +%s)" > ~/.dynamic_vault_date
 }
 
 function tf_vault() {
@@ -314,3 +315,4 @@ function tf_vault() {
   export VAULT_ADDR="https://vault.${ENV}.${COMPANY_DOMAIN}"
   export VAULT_TOKEN=$(cat "${HOME}/.vault-token-${ENV}")
 }
+

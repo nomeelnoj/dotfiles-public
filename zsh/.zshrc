@@ -50,6 +50,10 @@ function cclip() {
   done
 }
 
+function git_file_size() {
+  git ls-tree -r -l --abbrev --full-name HEAD | sort -n -r -k 4
+}
+
 
 prompt_context(){}
 

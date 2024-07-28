@@ -1,6 +1,28 @@
 # Command completion
 complete -C '/usr/local/bin/aws_completer' aws
 
+function all_accounts_query() {
+  if [ -z "${1}" ]; then
+    echo "Enter a quoted string as the command to run in each account"
+    return 1
+  fi
+  for ACCOUNT_ID in $(aws organizations list-accounts --profile "${AWS_ORG_PAYER}" | jq -r '.Accounts[] | select(.Status == "ACTIVE").Id'); do
+    PROFILE_NAME=$(
+      aws organizations \
+      list-tags-for-resource \
+      --resource-id "${ACCOUNT_ID}" \
+      --profile "${AWS_ORG_PAYER}" |\
+      jq -r '
+        .Tags[]
+          | select(.Key == "AwsProfile")
+          | .Value
+      '
+    )
+    echo "Profile: ${PROFILE_NAME}"
+    eval "AWS_PROFILE=${PROFILE_NAME} ${1}"
+  done
+}
+
 function assume_role() {
   if [ -z "$3" ]; then
     echo "No role session name provided in \$3, using 'default'"
@@ -13,10 +35,22 @@ function assume_role() {
 }
 
 function aws_ssm_rdp() {
-  aws ssm start-session --target ${1} \
+  if [ -z "$1" ]; then
+    echo "No instance id provided!"
+    return 1
+  fi
+  if [ -z "$2" ]; then
+    echo "No profile provided, using default"
+    aws ssm start-session --target ${1} \
     --document-name AWS-StartPortForwardingSession \
     --parameters '{"portNumber":["3389"],"localPortNumber":["23389"]}'
-}
+  else
+    aws ssm start-session --target ${1} \
+    --profile ${2} \
+    --document-name AWS-StartPortForwardingSession \
+    --parameters '{"portNumber":["3389"],"localPortNumber":["23389"]}'
+  fi
+  }
 
 function aws_ssm_ssh() {
   aws ssm start-session --target ${1} \
@@ -51,6 +85,15 @@ function aws_accounts() {
           | select(.Key==\"AwsProfile\").Value'"'"'
           | xargs -I{} echo \($id),{}"
     ' | bash
+}
+
+function aws_org_accounts() {
+  aws organizations list-accounts --profile "${AWS_ORG_PAYER}" |\
+    jq '
+      [
+        .[][] | select(.Status == "ACTIVE") | pick(.Name, .Id)
+      ]
+    '
 }
 
 function aws_bucket_usage() {
@@ -148,7 +191,9 @@ function aws_get_policy() {
 }
 
 function aws_search_public_enis() {
-  aws ec2 describe-network-interfaces |\
+  local AWS_PROFILE="${2:-${AWS_PROFILE:-default}}"
+  AWS_PROFILE="${AWS_PROFILE}" \
+    aws ec2 describe-network-interfaces |\
     jq -r --arg search "$1" '
       .NetworkInterfaces[]
       | select(
@@ -352,7 +397,8 @@ function get_instances() {
         .InstanceType,
         .PrivateIpAddress,
         .PublicIpAddress,
-        .State.Name
+        .State.Name,
+        .KeyName
       ) + {Tags: (.Tags | from_entries)}"
   fi
 
