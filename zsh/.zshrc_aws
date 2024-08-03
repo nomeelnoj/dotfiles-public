@@ -1,6 +1,9 @@
 # Command completion
 complete -C '/usr/local/bin/aws_completer' aws
 
+# BETTER RETRIES FOR LOOPS
+# AWS_RETRY_MODE=adaptive
+
 function all_accounts_query() {
   if [ -z "${1}" ]; then
     echo "Enter a quoted string as the command to run in each account"

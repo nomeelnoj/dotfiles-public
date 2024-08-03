@@ -300,6 +300,7 @@ function dynamic_vault() {
     URL="${VAULT_ADDR}/v1/auth/ldap/login/${DOMAIN_USERNAME}"
     echo "Requesting Auth from ${URL}"
     RESULTS=$(curl \
+      -s \
       -k \
       --request POST \
       --data "{\"password\": \"${DOMAIN_PASSWORD}\"}" \
