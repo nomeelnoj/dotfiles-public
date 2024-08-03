@@ -4,7 +4,7 @@ return {
   { "hrsh7th/cmp-buffer" },   -- Buffer completions
   { "hrsh7th/cmp-path" },     -- Path completions
   { "hrsh7th/cmp-cmdline" },  -- Command line completions
-  { "kkoomen/vim-doge" },-- doc generation
+  { "kkoomen/vim-doge" },     -- doc generation
   {
     "zbirenbaum/copilot.lua",
     cmd = "Copilot",
@@ -12,9 +12,9 @@ return {
     config = function()
       require("copilot").setup({
         filetypes = {
-          secure = false,    -- disable copilot for secure files
-          yaml = true,       -- default: false
-          markdown = true,   -- default: false
+          secure = false,  -- disable copilot for secure files
+          yaml = true,     -- default: false
+          markdown = true, -- default: false
           help = false,
           gitcommit = false,
           gitrebase = false,
@@ -84,6 +84,8 @@ return {
       local terraform_root_dir = function(fname)
         return require('lspconfig').util.path.dirname(fname)
       end
+      local jsoncapabilities = vim.lsp.protocol.make_client_capabilities()
+      jsoncapabilities.textDocument.completion.completionItem.snippetSupport = true
       local servers = {
         -- { 'iam-lsp' },
         -- { 'emoji-lsp' },
@@ -107,9 +109,26 @@ return {
             Lua = {
               diagnostics = {
                 globals = { 'vim' }
-              }
+              },
+              workspace = {
+                ignoreDir = {
+                  "undodir"
+                }
+              },
             }
           }
+        },
+        {
+          'jsonls',
+          -- capabilities = jsoncapabilities,
+          settings = {
+            json = {
+              format = {
+                enable = true,
+              },
+            },
+            validate = { enable = true },
+          },
         },
       }
 
@@ -140,6 +159,11 @@ return {
           )
         end
       end
+      require('mason-lspconfig').setup_handlers({
+        function(server)
+          lsp[server].setup({})
+        end,
+      })
     end,
   },
   -- Setup nvim-cmp and preferences

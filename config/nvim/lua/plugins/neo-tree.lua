@@ -54,6 +54,9 @@ return {
       },
       window = {
         width = 30,
+        mappings = {
+          ["<space>"] = { "toggle_node", nowait = false },
+        },
       },
       default_component_configs = {
         container = {

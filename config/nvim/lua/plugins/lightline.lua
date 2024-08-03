@@ -1,5 +1,5 @@
 return {
-    {
-        "itchyny/lightline.vim",
-    }
+  {
+    "itchyny/lightline.vim",
+  }
 }

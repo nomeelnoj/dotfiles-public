@@ -100,6 +100,17 @@ return {
         ":Neotree focus<CR>:Telescope find_files<CR>",
         { noremap = true, silent = true }
       )
+      -- Create a file search with telescope
+      local builtin = require("telescope.builtin")
+      vim.keymap.set(
+        "n",
+        "<leader>ps",
+        function()
+          builtin.grep_string(
+            { search = vim.fn.input("Grep: ") }
+          )
+        end
+      )
     end
     --opts = {
     --  defaults = {},

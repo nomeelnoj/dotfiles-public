@@ -3,17 +3,18 @@ return {
   --    "nvim-tree/nvim-tree.lua",
   --    config = function()
   --      require("nvim-tree").setup({
+  --        view = {
+  --          relativenumber = true,
+  --          width = 30,
+  --        },
   --        sort = {
   --          sorter = "case_sensitive",
-  --        },
-  --        view = {
-  --          width = 30,
   --        },
   --        renderer = {
   --          group_empty = true,
   --        },
   --        filters = {
-  --          dotfiles = true,
+  --          dotfiles = false,
   --        },
   --      })
   --    end,
