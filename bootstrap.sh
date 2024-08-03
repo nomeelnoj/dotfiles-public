@@ -646,6 +646,8 @@ install_all() {
   /usr/local/go/bin/go install github.com/rust-lang/rust-analyzer@master
   # Install other LSPs
   npm i -g bash-language-server
+  # Json
+  npm i -g vscode-langservers-extracted
   # If you do not want to use brew, you need a wrapper script
   # brew install lua-language-server
   echo "DO NOT FORGET TO INSTALL LUA-LANGUAGE-SERVER! https://github.com/LuaLS/lua-language-server"

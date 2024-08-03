@@ -1,12 +1,5 @@
-vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
-  pattern = "*.zshrc_secure",
-  command = "set filetype=secure",
-})
-
-vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
-  pattern = "COMMIT_EDITMSG",
-  command = "set filetype=gitcommit",
-})
+-- Enable vim-gitgutter logging
+-- vim.g.gitgutter_log = 1
 
 vim.g.mapleader = " "
 
