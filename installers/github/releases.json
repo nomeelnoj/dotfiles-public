@@ -26,5 +26,6 @@
   "terraform-lsp": "juliosueiras/terraform-lsp",
   "lua-language-server": "LuaLS/lua-language-server",
   "hyperfine": "sharkdp/hyperfine",
-  "gh-md-toc": "ekalinin/github-markdown-toc.go"
+  "gh-md-toc": "ekalinin/github-markdown-toc.go",
+  "shfmt": "mvdan/sh"
 }
